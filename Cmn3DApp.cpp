@@ -68,7 +68,13 @@ LRESULT Cmn3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		return 0;
 
 	case WM_SIZE:
-		if (m_device) Create_RTV_DSV();
+
+		if (m_device)
+		{
+			m_width = LOWORD(lParam);
+			m_height = HIWORD(lParam);
+			Create_RTV_DSV();
+		}
 		return 0;
 	}
 

@@ -56,8 +56,8 @@ void myAppClass::Initialize()
 
 void myAppClass::MoveObj(int Sig)
 {
-	if (Sig == -1) mTheta -= XMConvertToRadians(2.5f);
-	else mTheta += XMConvertToRadians(2.5f);
+	if (Sig == -1) mTheta -= XMConvertToRadians(1.1f);
+	else mTheta += XMConvertToRadians(1.1f);
 }
 
 void myAppClass::Draw()
