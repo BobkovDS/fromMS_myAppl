@@ -45,7 +45,18 @@ LRESULT Cmn3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		}
 		else if (wParam == VK_LEFT) MoveObj(-1);
 		else if (wParam == VK_RIGHT) MoveObj(1);
-		else if (wParam == VK_SPACE) { ModeFlag = !ModeFlag;}
+		else if (wParam == VK_SPACE) { ModeFlag = !ModeFlag; }
+		else if (wParam == 'F')	{ Mode = FaceMode;}
+		else if (wParam == 'L') { Mode = LineMode; }
+		else if (wParam == 'P') { Mode = PointMode; }
+		else if (wParam == 'Z') { Pause = !Pause;}
+		else if (wParam == VK_OEM_PLUS)
+			FaceCountToDraw++;
+		else if (wParam == VK_OEM_MINUS)
+		{
+			FaceCountToDraw--;
+			if (FaceCountToDraw < 1) FaceCountToDraw = 1;
+		}
 		return 0;
 
 	case WM_DESTROY:
@@ -437,8 +448,26 @@ int Cmn3DApp::Run()
 		else
 		{
 			Update();
-			if (gameTimer.Tick()) MoveObj(1);
+
+			if (!Pause)
+				if (gameTimer.Tick()) MoveObj(1);
 			Draw();
+
+			std::wstring  statusText;
+			statusText = L"Mode: ";
+			if (Mode==FaceMode)
+				statusText += L"FaceMode ";
+			else if (Mode == LineMode)
+				statusText += L"LineMode ";
+			if (Mode == PointMode)
+				statusText += L"PointMode ";
+			
+			statusText += L"Faces count: " + std::to_wstring(FaceCountToDraw);
+			if (Pause)	statusText += L" (PAUSE)";
+
+			SetWindowText(m_hMainWind,statusText.c_str());
+
+
 		}
 	}
 	return 0;

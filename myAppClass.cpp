@@ -38,7 +38,7 @@ void myAppClass::Initialize()
 	
 	mPhi = 5.0f;
 	mTheta = 1.5f*3.14f;
-	mRadius = 10.0f;
+	mRadius = 20.0f;
 
 	ThrowIfFailed(m_CmdList->Reset(m_CmdAllocator.Get(), nullptr));
 
@@ -90,16 +90,34 @@ void myAppClass::Draw()
 	m_CmdList->SetGraphicsRootSignature(m_RootSignature.Get());
 
 	m_CmdList->IASetVertexBuffers(0, 1, &m_box->vertexBufferView());
-	//m_CmdList->IASetIndexBuffer(&m_box->indexBufferView());
-	m_CmdList->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_LINELIST);
-	//m_CmdList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		//m_CmdList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+	
+
+	if (Mode == FaceMode)
+	{
+		m_CmdList->IASetIndexBuffer(&m_box->indexBufferView());
+		m_CmdList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	}
+	else if (Mode == LineMode)
+		m_CmdList->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_LINELIST);
+	else if (Mode == PointMode)
+		m_CmdList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+
+	//m_CmdList->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_LINELIST);
+	//m_CmdList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);		
 
 	m_CmdList->SetGraphicsRootDescriptorTable(0, m_cbvHeap->GetGPUDescriptorHandleForHeapStart());
 
-	//m_CmdList->DrawIndexedInstanced(m_box->box.IndexCount, 1, 0, 0, 0);
-	m_CmdList->DrawInstanced(m_box->box.VertextCount, 1, 0, 0);
+	if (FaceCountToDraw > m_box->box.IndexCount) FaceCountToDraw = m_box->box.IndexCount;	
+
+	if (Mode == FaceMode)
+		m_CmdList->DrawIndexedInstanced(FaceCountToDraw, 1, 0, 0, 0);
+	else
+		m_CmdList->DrawInstanced(m_box->box.VertextCount, 1, 0, 0);
 	
+	// Draw one more time
+	m_CmdList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	m_CmdList->DrawInstanced(m_box->box.VertextCount, 1, 0, 0);
+
 	m_CmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_SwapChainBuffers[m_swapChain->GetCurrentBackBufferIndex()].Get(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 	
@@ -249,17 +267,25 @@ void myAppClass::BuildBoxGeometry()
 	ModelLoaderClass ModelLoader;
 	ModelLoader.LoadModelFromFile(L"PlainModel.obj");
 
-	int Count = ModelLoader.GetVectorSizeV();
+	int VertexCount = ModelLoader.GetVectorSizeV();
 		
 	std::vector<Vertex> vertices;
 	ModelLoader.SetToBeginV();
-	for (int i = 0; i < Count; i++)
+	for (int i = 0; i < VertexCount; i++)
 	{
 		VertexModelLoader tmpVert = ModelLoader.GetNextV();
-		vertices.push_back(Vertex({ XMFLOAT3(tmpVert.x, tmpVert.y, tmpVert.z), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) }));
+		vertices.push_back(Vertex({ XMFLOAT3(tmpVert.x, tmpVert.y, tmpVert.z), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) }));
 	}
 	
+	int IndexCount = ModelLoader.GetVectorSizeI();
 
+	std::vector<uint16_t> indices;
+	ModelLoader.SetToBeginI();
+	for (int i = 0; i < IndexCount; i++)
+	{
+		uint16_t tmpIndex = ModelLoader.GetNextI();
+		indices.push_back(tmpIndex);
+	}
 	/*
 	std::array<Vertex, 8> vertices =
 	{
@@ -273,7 +299,7 @@ void myAppClass::BuildBoxGeometry()
 		Vertex({ XMFLOAT3(+1.0f, -1.0f, +1.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) })
 	};
 	*/
-
+	/*
 	std::array<std::uint16_t, 36> indices =
 	{// front face
 		0, 1, 2,
@@ -299,9 +325,9 @@ void myAppClass::BuildBoxGeometry()
 		4, 0, 3,
 		4, 3, 7 
 	};
-	
+	*/
 	const UINT vbByteSize = (UINT) vertices.size() * sizeof(Vertex);
-	const UINT ibByteSize = (UINT)indices.size() * sizeof(uint16_t);
+	const UINT ibByteSize = (UINT) indices.size() * sizeof(uint16_t);
 	
 	m_box = std::make_unique<MeshGeometry>();
 	
@@ -313,8 +339,9 @@ void myAppClass::BuildBoxGeometry()
 	m_box->indexFormat = DXGI_FORMAT_R16_UINT;
 	m_box->IndexBufferByteSize = ibByteSize;
 
-	m_box->box.IndexCount = (UINT)indices.size();
-	m_box->box.VertextCount = (UINT)Count;
+	FaceCountToDraw = IndexCount;
+	m_box->box.IndexCount = (UINT)IndexCount;
+	m_box->box.VertextCount = (UINT)VertexCount;
 	m_box->box.StartIndexLocation = 0;
 	m_box->box.BaseVertexLocation = 0;
 }
@@ -339,7 +366,14 @@ void myAppClass::BuildPSO()
 	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	psoDesc.SampleMask = UINT_MAX;
-	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;// D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	
+	if (Mode == FaceMode)
+		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	else if (Mode == LineMode)
+		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+	else if (Mode == PointMode)
+		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+	
 	psoDesc.NumRenderTargets = 1;
 	psoDesc.RTVFormats[0] = m_BackBufferFormat;
 	psoDesc.DSVFormat = m_DepthStencilFormat;
@@ -347,8 +381,6 @@ void myAppClass::BuildPSO()
 	
 	//ThrowIfFailed(m_device->CreateGraphicsPipelineState(&psoDesc,IID_PPV_ARGS(&m_pso)));
 	HRESULT hr = m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pso));
-
-
 }
 
 

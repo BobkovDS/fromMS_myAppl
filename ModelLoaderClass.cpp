@@ -35,6 +35,33 @@ bool ModelLoaderClass::LoadModelFromFile(const std::wstring& filename)
 				//outPutLine = std::to_wstring(inVertex.x) + std::to_wstring(inVertex.y) + std::to_wstring(inVertex.z) + L"\n";
 				//OutputDebugString(outPutLine.c_str());
 			}
+			else if (firstSymbol == "f")
+			{
+
+				uint16_t tmpIndex = 0;
+				std::string tmpString;
+				std::string delimiter = "//";
+				std::vector<std::uint16_t> tmpIndices;
+
+				while (inStr.good())
+				{
+					inStr >> tmpString;
+					tmpString = tmpString.substr(0, tmpString.find(delimiter));
+					tmpIndex = std::stoi(tmpString)-1;
+					tmpIndices.push_back(tmpIndex);
+				}
+
+				if (tmpIndices.size() >= 3) // at least we have 1 triangle
+				{
+					for (int i = 0; i < (tmpIndices.size() - 2); i++) // i= FaceCount = VerticesCount-2
+					{
+						indices.push_back(tmpIndices.at(0)); //Vertex #1;
+						indices.push_back(tmpIndices.at(i+1)); //Vertex #2;
+						indices.push_back(tmpIndices.at(i+2)); //Vertex #3;
+					}
+				}
+
+			}
 			
 		}
 		
@@ -52,6 +79,7 @@ bool ModelLoaderClass::LoadModelFromFile(const std::wstring& filename)
 	
 }
 
+// for Vertices vector
 void ModelLoaderClass::SetToBeginV()
 {
 	m_currVertextIndex = 0;
@@ -65,4 +93,20 @@ int ModelLoaderClass::GetVectorSizeV()
 VertexModelLoader ModelLoaderClass::GetNextV()
 {
 	return vertices.at(m_currVertextIndex++);
+}
+
+// for Indicies Vector
+void ModelLoaderClass::SetToBeginI()
+{
+	m_currIndexIndex = 0;
+}
+
+int ModelLoaderClass::GetVectorSizeI()
+{
+	return indices.size();
+}
+
+uint16_t ModelLoaderClass::GetNextI()
+{
+	return indices.at(m_currIndexIndex++);
 }

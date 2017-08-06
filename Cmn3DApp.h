@@ -15,6 +15,11 @@
 #pragma comment(lib, "D3D12.lib")
 #pragma comment(lib, "dxgi.lib")
 
+#define FaceMode 0
+#define LineMode 1
+#define PointMode 2
+
+
 using Microsoft::WRL::ComPtr;
 
 class Cmn3DApp
@@ -32,7 +37,10 @@ protected: //Child class also can use it
 	static Cmn3DApp* thisApp;
 	const static UINT m_BufferCount = 2;
 	bool ModeFlag = false;
+	int Mode = 0;
+	int FaceCountToDraw = 1;
 	bool prevModeFlag = false;
+	bool Pause = false;
 	UINT m_rtvDescriptorSize = 0;
 	float AspectRatio = 1.0f;
 
