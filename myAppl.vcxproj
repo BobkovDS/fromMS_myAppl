@@ -141,12 +141,14 @@
   <ItemGroup>
     <ClInclude Include="Cmn3DApp.h" />
     <ClInclude Include="MathHelper.h" />
+    <ClInclude Include="ModelLoaderClass.h" />
     <ClInclude Include="myAppClass.h" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="UploadBuffer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Cmn3DApp.cpp" />
+    <ClCompile Include="ModelLoaderClass.cpp" />
     <ClCompile Include="myAppClass.cpp" />
     <ClCompile Include="Timer.cpp" />
   </ItemGroup>

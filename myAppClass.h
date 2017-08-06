@@ -10,6 +10,7 @@
 struct SubMesh
 {
 	UINT IndexCount = 0;
+	UINT VertextCount = 0;
 	UINT StartIndexLocation = 0;
 	INT BaseVertexLocation = 0;
 };
