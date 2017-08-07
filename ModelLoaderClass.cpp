@@ -1,6 +1,6 @@
 #include "ModelLoaderClass.h"
 
-
+using namespace std;
 ModelLoaderClass::ModelLoaderClass()
 {
 }
@@ -53,6 +53,8 @@ bool ModelLoaderClass::LoadModelFromFile(const std::wstring& filename)
 
 				if (tmpIndices.size() >= 3) // at least we have 1 triangle
 				{
+					TrangulationOfPolygon(&tmpIndices);
+
 					for (int i = 0; i < (tmpIndices.size() - 2); i++) // i= FaceCount = VerticesCount-2
 					{
 						indices.push_back(tmpIndices.at(0)); //Vertex #1;
@@ -109,4 +111,46 @@ int ModelLoaderClass::GetVectorSizeI()
 uint16_t ModelLoaderClass::GetNextI()
 {
 	return indices.at(m_currIndexIndex++);
+}
+
+void ModelLoaderClass::TrangulationOfPolygon(vector<std::uint16_t> *PolygonIndex)
+{
+	vector<std::uint16_t> tmpVector;
+
+	int isize = PolygonIndex->size();
+	int m = 0;
+
+	tmpVector.push_back(0);
+	for (int i = 1; i < isize; i++)
+	{
+		VertexModelLoader a, b;
+		a = vertices.at(PolygonIndex->at(m));
+		b = vertices.at(PolygonIndex->at(i));
+
+		if (a != b)
+		{
+			if (m == 0)
+			{
+				m++;
+				tmpVector.push_back(m);
+			}
+			else
+			{
+				Check3PointsOnLine(vertices.at(PolygonIndex->at(0)), vertices.at(m), vertices.at(i));
+			}
+		}
+	}
+
+}
+
+bool ModelLoaderClass::Check3PointsOnLine(VertexModelLoader a, VertexModelLoader b, VertexModelLoader p)
+{
+	VertexModelLoader A,B,C;
+	C.x = 0;
+	C.y = 0;
+	C.z = 0;
+
+	A = p - a;
+	B = b - a;
+	return (A*B == C);
 }
