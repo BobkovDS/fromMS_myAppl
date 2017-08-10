@@ -18,19 +18,26 @@ struct VertexModelLoader {
 
 	VertexModelLoader operator - (const VertexModelLoader &point) const {
 		VertexModelLoader c;
-		c.x = point.x - x;
-		c.y = point.x - y;
-		c.z = point.x - z;
+		c.x = x - point.x;
+		c.y = y - point.y;
+		c.z = z - point.z;
 		return c;
 	}
 
-	VertexModelLoader operator * (const VertexModelLoader &point) const { //Vectornoe proizvedenie
+	float operator % (const VertexModelLoader &point) const { //scalar proizvedenie - Dot product
+		float c;
+		c = x*point.x + y*point.y + z*point.z;
+		
+		return c;
+	}
+	VertexModelLoader operator * (const VertexModelLoader &point) const { //Vectornoe proizvedenie - Cross product
 		VertexModelLoader c;
 		c.x = y*point.z - z*point.y;
-		c.y = x*point.z - z*point.x;
+		c.y =-1*(x*point.z - z*point.x);
 		c.z = x*point.y - y*point.x;
 		return c;
 	}
+
 
 };
 
@@ -59,5 +66,6 @@ private:
 
 	void TrangulationOfPolygon(std::vector<std::uint16_t> *PolygonIndex);
 	bool Check3PointsOnLine(VertexModelLoader a, VertexModelLoader b, VertexModelLoader p);
+	int FindProjectPlane(VertexModelLoader p1, VertexModelLoader p2, VertexModelLoader p3, VertexModelLoader p4);
 };
 

@@ -1,4 +1,5 @@
 #include "ModelLoaderClass.h"
+#include <array>
 
 using namespace std;
 ModelLoaderClass::ModelLoaderClass()
@@ -53,7 +54,8 @@ bool ModelLoaderClass::LoadModelFromFile(const std::wstring& filename)
 
 				if (tmpIndices.size() >= 3) // at least we have 1 triangle
 				{
-					TrangulationOfPolygon(&tmpIndices);
+					//TrangulationOfPolygon(&tmpIndices);
+					int axis = FindProjectPlane(vertices.at(0), vertices.at(1), vertices.at(2), vertices.at(3));
 
 					for (int i = 0; i < (tmpIndices.size() - 2); i++) // i= FaceCount = VerticesCount-2
 					{
@@ -153,4 +155,50 @@ bool ModelLoaderClass::Check3PointsOnLine(VertexModelLoader a, VertexModelLoader
 	A = p - a;
 	B = b - a;
 	return (A*B == C);
+}
+
+int ModelLoaderClass::FindProjectPlane(VertexModelLoader p1, VertexModelLoader p2, VertexModelLoader p3, VertexModelLoader p4)
+{
+	//Find Normal
+	// -a: Check input vectors are coplanar. For that scalar triple product = 0
+	// abc = (a x b) * c, where a x b - cross product, and b * c - dot product
+	// a = p1 - p2
+	// b = p2 - p3
+	// c = p3 - p4
+	
+	VertexModelLoader a, b, c;
+	a = p2 - p1;
+	b = p3 - p2;
+	c = p4 - p3;
+
+	float stp = (a*b) % c;
+
+	if (stp <= 0.00000000001) // vectors are complanar
+	{
+		a = p4 - p2;
+		b = p3 - p1;
+		c = a*b; // find Ortogonal vetor to this 2 vectors
+		
+		float modC = sqrt(c.x*c.x + c.y*c.y + c.z*c.z); 
+		c.x = abs(c.x / modC); //normalize
+		c.y = abs(c.y / modC);
+		c.z = abs(c.z / modC);
+
+		array<float, 3> forSort = { c.x,c.y,c.z };
+		
+		int axis = 3;
+		for (int i = 0; i < 2; i++)
+		{
+			if (forSort[i] > forSort[i+1])
+			{
+				float tmpValue = forSort[i+1];
+				forSort[i + 1] = forSort[i];
+				forSort[i] = tmpValue;
+				if (axis > (i + 1) ) axis = i + 1;
+			}
+		}
+
+		return axis;
+	}
+	else return 0;
 }

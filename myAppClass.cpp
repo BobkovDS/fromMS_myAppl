@@ -38,7 +38,7 @@ void myAppClass::Initialize()
 	
 	mPhi = 5.0f;
 	mTheta = 1.5f*3.14f;
-	mRadius = 20.0f;
+	mRadius = 2.0f;
 
 	ThrowIfFailed(m_CmdList->Reset(m_CmdAllocator.Get(), nullptr));
 
@@ -265,7 +265,8 @@ void myAppClass::BuildBoxGeometry()
 {
 	// Load model from file 
 	ModelLoaderClass ModelLoader;
-	ModelLoader.LoadModelFromFile(L"PlainModel.obj");
+	//ModelLoader.LoadModelFromFile(L"PlainModel.obj");
+	ModelLoader.LoadModelFromFile(L"temp.obj");
 
 	int VertexCount = ModelLoader.GetVectorSizeV();
 		
