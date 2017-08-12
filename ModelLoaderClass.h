@@ -63,9 +63,15 @@ private:
 
 	std::vector<VertexModelLoader> vertices;
 	std::vector<std::uint16_t> indices;
+	std::vector<std::uint16_t> FaceIndices;
+	std::vector<std::uint16_t> NewPolyIndices;
+	std::vector<VertexModelLoader> projection; // z-coordinate does not used here
 
 	void TrangulationOfPolygon(std::vector<std::uint16_t> *PolygonIndex);
 	bool Check3PointsOnLine(VertexModelLoader a, VertexModelLoader b, VertexModelLoader p);
-	int FindProjectPlane(VertexModelLoader p1, VertexModelLoader p2, VertexModelLoader p3, VertexModelLoader p4);
+	bool FindProjectPlane(VertexModelLoader p1, VertexModelLoader p2, VertexModelLoader p3, VertexModelLoader p4);
+	bool CreateMinPolygon(std::vector<std::uint16_t> *inputPolygon);
+	int CheckConvexPolynom(std::vector<std::uint16_t> *inputPolygon); //conv2P function
+	void LCShift(std::vector<std::uint16_t> *inputPolygon); 
 };
 
