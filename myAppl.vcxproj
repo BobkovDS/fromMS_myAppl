@@ -146,6 +146,7 @@
     <ClInclude Include="ModelLoaderClass.h" />
     <ClInclude Include="myAppClass.h" />
     <ClInclude Include="Timer.h" />
+    <ClInclude Include="TriangulationDilane.h" />
     <ClInclude Include="UploadBuffer.h" />
   </ItemGroup>
   <ItemGroup>

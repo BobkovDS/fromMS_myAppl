@@ -43,3 +43,11 @@ struct VertexModelLoader {
 		return c;
 	}
 };
+
+
+struct Triangle
+{
+	array<VertexModelLoader, 3> Vertices;
+	array<uint16_t, 3> NeighborIDs;
+	uint16_t ID;
+};

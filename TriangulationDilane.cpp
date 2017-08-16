@@ -1,9 +1,8 @@
+#include "TriangulationDilane.h"
+using namespace std;
 
-
-
-    public partial class ConvexHullApl : Form
-    {
-        ArrayList _date;
+/*
+         ArrayList _date;
         ArrayList _convexHull;
         ArrayList _dbDate;
         System.Drawing.Graphics mGraph;
@@ -26,12 +25,6 @@
         float mx, my, mz;
         int numVerts = 0;
       
-        public ConvexHullApl()
-        {
-            //this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.Opaque, true);
-            InitializeComponent();
-        }
-
         public void OkButton_Click(object sender, EventArgs e)
         {
             
@@ -66,367 +59,367 @@
             else MessageBox.Show("Convex Hull was bulit");
 
         }
-        
-        void InitTr()
-        {
-            _Triangl = new ArrayList();
+        */
+void TriangulationDilane::CreateTriangulation(vector<VertexModelLoader> *inPutDate)
+{
+	Triangle newTriangle;
 
-            _triugol tTr = new _triugol();
+	newTriangle.Vertices[0] = inPutDate->at(0);
+	newTriangle.Vertices[1] = inPutDate->at(1);
+	newTriangle.Vertices[2] = inPutDate->at(2);
 
-            tTr.SetPoint(0, _convexHull[0]);
-            tTr.SetPoint(1, _convexHull[1]);
-            tTr.SetPoint(2, _convexHull[2]);
-            tTr.index = _Triangl.Count;
+	newTriangle.ID = 0;
 
-            for (int i = 3; i < _convexHull.Count; i++)
-            {
-                tTr.triangtes[1] = tTr.index + 1;
-                if (tTr.index != 0) tTr.triangtes[2] = tTr.index - 1;
-                _Triangl.Add(tTr);
-
-                tTr = new _triugol();
-                tTr.SetPoint(0, _convexHull[0]);
-                tTr.SetPoint(1, _convexHull[i - 1]);
-                tTr.SetPoint(2, _convexHull[i]);
-                tTr.index = _Triangl.Count;
+	for (int i = 3; i < inPutDate->size(); i++)
+	{
+		newTriangle.NeighborIDs[1] = newTriangle.ID + 1;
+		if (newTriangle.ID != 0) newTriangle.NeighborIDs[2] = newTriangle.ID - 1;
+		Triangles.push_back(newTriangle);
 
 
-            }
-            tTr.triangtes[2] = tTr.index - 1;
-            _Triangl.Add(tTr);
+		newTriangle.Vertices[0] = inPutDate->at(0);
+		newTriangle.Vertices[1] = inPutDate->at(i - 1);
+		newTriangle.Vertices[2] = inPutDate->at(i);
 
-        }
-        void toDelone()
-        {
+		newTriangle.ID = Triangles.size();
+	}
+	newTriangle.NeighborIDs[2] = newTriangle.ID - 1;
+	Triangles.push_back(newTriangle);
+}
 
-            for (int i = 0; i < _Triangl.Count; i++)
-            {
+void TriangulationDilane::DelonePrepare()
+{
 
-                _triugol work = (_triugol)_Triangl[i];
+	for (int i = 0; i < Triangles.size(); i++)
+	{
+		Flip(Triangles.at(i).ID, Triangles.at(i).NeighborIDs[1]);
+	}
 
-                //000000000 while (Flip(work.index, work.triangtes[0])) { };
-                Flip(work.index, work.triangtes[1]);
-                // while (Flip(work.index, work.triangtes[1])) { };
+}
 
-                //000000000while (Flip(work.index, work.triangtes[2])) { };
+bool TriangulationDilane::Flip(int F, int S)
+{
+	if ((F != S) & (S != -1))
+	{
+		Triangle triangleA;
+		Triangle triangleB;
 
-            }
+		triangleA = Triangles.at(F);
+		triangleA = Triangles.at(S);
+		
+		bool _result = false;
+		bool Ok = false;
+		array<uint16_t,2> protiv = GetNomers(F, S);
 
-        }
-        bool Flip(int F, int S)
-        {
-            if ((F != S) & (S != -1))
-            {
-                _triugol T1 = (_triugol)_Triangl[F];
-                _triugol T2 = (_triugol)_Triangl[S];
-                bool _result = false;
-                bool Ok = false;
-                int[] protiv = GetNomers(F, S);
-                int Pr1 = _mod(protiv[0] + 1); // точка "до" в 1
-                int Sl1 = _mod(protiv[0]);// точка "после" в 1
-                int Pr2 = _mod(protiv[1] + 1); // точка "до" в 2
-                int Sl2 = _mod(protiv[1]);// точка "после" в 2
+		int Pr1 = Mod(protiv[0] + 1); // точка "до" в 1
+		int Sl1 = Mod(protiv[0]);// точка "после" в 1
+		int Pr2 = Mod(protiv[1] + 1); // точка "до" в 2
+		int Sl2 = Mod(protiv[1]);// точка "после" в 2
 
-                _point p1 = T1.node[Pr1];
-                _point p2 = T1.node[protiv[0]]; //<--|
-                _point p3 = T1.node[Sl1];       //   |  противоположные вершины
-                _point p0 = T2.node[protiv[1]]; //<--| 
+		VertexModelLoader p1 = triangleA.Vertices[Pr1];
+		VertexModelLoader p2 = triangleA.Vertices[protiv[0]]; //<--|
+		VertexModelLoader p3 = triangleA.Vertices[Sl1];       //   |  противоположные вершины
+		VertexModelLoader p0 = triangleB.Vertices[protiv[1]]; //<--| 
 
-                double cosA = (p0.x - p1.x) * (p0.x - p3.x) + (p0.y - p1.y) * (p0.y - p3.y);
-                double cosB = (p2.x - p1.x) * (p2.x - p3.x) + (p2.y - p1.y) * (p2.y - p3.y);
-                if (cosA > 0 & cosB > 0) Ok = false;
-                else if (cosA <= 0 & cosB <= 0) Ok = true;
-                else
-                {
-                    double Sig =
-                             ((p0.x - p1.x) * (p0.y - p3.y) - (p0.x - p3.x) * (p0.y - p1.y)) * cosB -
-                             cosA * ((p2.x - p1.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p2.y - p1.y));
-                    if (Sig <= 0) Ok = true; else Ok = false;
-                }
+		double cosA = (p0.x - p1.x) * (p0.x - p3.x) + (p0.y - p1.y) * (p0.y - p3.y);
+		double cosB = (p2.x - p1.x) * (p2.x - p3.x) + (p2.y - p1.y) * (p2.y - p3.y);
+		if (cosA > 0 & cosB > 0) Ok = false;
+		else if (cosA <= 0 & cosB <= 0) Ok = true;
+		else
+		{
+			double Sig =
+				((p0.x - p1.x) * (p0.y - p3.y) - (p0.x - p3.x) * (p0.y - p1.y)) * cosB -
+				cosA * ((p2.x - p1.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p2.y - p1.y));
+			if (Sig <= 0) Ok = true; else Ok = false;
+		}
 
 
-                if (Ok)// Выполняется условие, значит надо перестроить
-                {
-                    T1.node[Sl1] = p0;
-                    T2.node[Sl2] = p2;
+		if (Ok)// Выполняется условие, значит надо перестроить
+		{
+			triangleA.Vertices[Sl1] = p0;
+			triangleB.Vertices[Sl2] = p2;
 
-                    T1.triangtes[protiv[0]] = T2.triangtes[Pr2];
-                    T2.triangtes[protiv[1]] = T1.triangtes[Pr1];
-                    T1.triangtes[Pr1] = T2.index;
-                    T2.triangtes[Pr2] = T1.index;
+			triangleA.NeighborIDs[protiv[0]] = triangleB.NeighborIDs[Pr2];
+			triangleB.NeighborIDs[protiv[1]] = triangleA.NeighborIDs[Pr1];
+			triangleA.NeighborIDs[Pr1] = triangleB.ID;
+			triangleB.NeighborIDs[Pr2] = triangleA.ID;
 
-                    //меняем указатели в соседях
-                    _triugol T3;
-                    int[] nNew;
-                    if (T2.triangtes[protiv[1]] != -1)
-                    {
-                        T3 = (_triugol)_Triangl[T2.triangtes[protiv[1]]];
-                        nNew = GetNomers(T2.index, T2.triangtes[protiv[1]]);
-                       
-                        T3.triangtes[nNew[1]] = T2.index;
-                    }
+			//меняем указатели в соседях
+			Triangle triangleC;
+			array<uint16_t, 2> nNew;
+			if (triangleB.NeighborIDs[protiv[1]] != -1)
+			{
+				triangleC = Triangles.at(triangleB.NeighborIDs[protiv[1]]);
+				nNew = GetNomers(triangleB.ID, triangleB.NeighborIDs[protiv[1]]);
 
-                    if (T1.triangtes[protiv[0]] != -1)
-                    {
-                        T3 = (_triugol)_Triangl[T1.triangtes[protiv[0]]];
-                        nNew = GetNomers(T1.index, T1.triangtes[protiv[0]]);
-                        T3.triangtes[nNew[1]] = T1.index;
-                    }
-                    _result = true;
+				triangleC.NeighborIDs[nNew[1]] = triangleB.ID;
+			}
 
-                   // Flip(T1.index, T1.triangtes[Sl1]);
-                    Flip(T1.index, T1.triangtes[protiv[0]]);
+			if (triangleA.NeighborIDs[protiv[0]] != -1)
+			{
+				triangleC = Triangles.at(triangleA..NeighborIDs[protiv[0]]);
+				nNew = GetNomers(triangleA.ID, triangleA.NeighborIDs[protiv[0]]);
+				triangleC.NeighborIDs[nNew[1]] = triangleA.ID;
+			}
+			_result = true;
 
-                    Flip(T2.index, T2.triangtes[Sl2]);
-                    //Flip(T2.index, T2.triangtes[protiv[1]]);
-                }
+			// Flip(triangleA.ID, triangleA.NeighborIDs[Sl1]);
+			Flip(triangleA.ID, triangleA.NeighborIDs[protiv[0]]);
 
-                return _result;
-            }
-            else return false;
+			Flip(triangleB.ID, triangleB.NeighborIDs[Sl2]);
+			//Flip(triangleB.ID, triangleB.NeighborIDs[protiv[1]]);
+		}
 
-        }
-        private void DELONE_GO()
-        {
-            int m = 2, N = 0, R = 6;
+		return _result;
+	}
+	else return false;
 
-            int[,] CASH = new int[,] { { 0, 0 }, { 0, 0 } };
-            int nTr, oldTr;
-            int Row, Column, oldR, oldC;
-            _point oldPoint = (_point)_date[0];
-            oldTr = 0;
-            oldR = 0; oldC = 0;
-            int SoC = m * m * R;
-            while (N < _date.Count)
-            {
-                _point point = (_point)_date[N];
-               /* if (Math.Sqrt((oldPoint.x - point.x) * (oldPoint.x - point.x) + (oldPoint.y - point.y) * (oldPoint.y - point.y)) < _Width / m)
-                {
-                    nTr = oldTr;
-                    Row = oldR;
-                    Column = oldC;
-                }
-                else*/
-                {
-                    Row = (int)Math.Floor(point.x / _Width * m);
-                    Column = (int)Math.Floor(point.y / _Width * m);
-                    nTr = CASH[Row, Column];
-                }
-                int[] Reseach = new int[] { 1, nTr };
-                while (Reseach[0] == 1) { Reseach = WalkToDarkOfMind(Reseach[1], point); }
-                switch (Reseach[0])
-                {
-                    case 0: // Мы нашли точку внутри треугольника
-                        {
-                            CASH[Row, Column] = Reseach[1];
-                            int NewNomer = _Triangl.Count;
-                            int[] Nomera = new int[] { Reseach[1], NewNomer, NewNomer + 1 };
-                            int[] nnom;
+}
 
-                            _triugol AddingT;
-                            _triugol DividT = (_triugol)_Triangl[Reseach[1]];
-                            _triugol Neigh = new _triugol();
 
-                            //First Added
-                            AddingT = new _triugol();
-                            AddingT.index = NewNomer;
-                            AddingT.node[0] = DividT.node[1];
-                            AddingT.node[1] = point;//AddingT.SetPoint(1, point);
-                            AddingT.node[2] = DividT.node[0];
-                            AddingT.triangtes = new int[] { DividT.index, DividT.triangtes[2], NewNomer + 1 };
-                            _Triangl.Add(AddingT);
+void TriangulationDilane::DeloneIt(vector<VertexModelLoader> *inPutDate)
+{
+	int m = 2, N = 0, R = 6;
+	array<array<uint16_t, m>, m> CASH;
+	//CASH[0] = { 0, 0 };
+	//CASH[1] = { 0, 0 };
+	
+	int nTr, oldTr;
+	int Row, Column, oldR, oldC;
 
-                            if (AddingT.triangtes[1] != -1)
-                            {
-                                Neigh = (_triugol)_Triangl[AddingT.triangtes[1]];
-                                nnom = GetNomers(NewNomer, AddingT.triangtes[1]);
-                                Neigh.triangtes[nnom[1]] = NewNomer;
-                            }
-                            AddingT = new _triugol();
-                            AddingT.index = NewNomer + 1;
-                            AddingT.node[0] = DividT.node[2];
-                            AddingT.node[1] = point;
-                            AddingT.node[2] = DividT.node[1];
-                            AddingT.triangtes = new int[] { NewNomer, DividT.triangtes[0], DividT.index };
-                            _Triangl.Add(AddingT);
+	VertexModelLoader oldPoint = inPutDate->at(0);
+	oldTr = 0;
+	oldR = 0; oldC = 0;
+	int SoC = m * m * R;
+	while (N < inPutDate->size())
+	{
+		VertexModelLoader point = inPutDate->at(N);
+		/* if (Math.Sqrt((oldPoint.x - point.x) * (oldPoint.x - point.x) + (oldPoint.y - point.y) * (oldPoint.y - point.y)) < _Width / m)
+		 {
+			 nTr = oldTr;
+			 Row = oldR;
+			 Column = oldC;
+		 }
+		 else*/
+		{
+			Row = floor(point.x / _Width * m);
+			Column = floor(point.y / _Width * m);
+			nTr = CASH[Row][Column];
+		}
+		array<uint16_t,2> Reseach = { 1, nTr };
+		while (Reseach[0] == 1) { Reseach = WalkToDarkOfMind(Reseach[1], point); }
+		switch (Reseach[0])
+		{
+		case 0: // Мы нашли точку внутри треугольника
+		{
+			CASH[Row][Column] = Reseach[1];
+			int NewNomer = Triangles.size();
+			array<uint16_t, 3> Nomera = { Reseach[1], NewNomer, NewNomer + 1 };
+			array<uint16_t, 2> nnom;
 
-                            if (AddingT.triangtes[1] != -1)
-                            {
-                                Neigh = (_triugol)_Triangl[AddingT.triangtes[1]];
-                                nnom = GetNomers(NewNomer + 1, AddingT.triangtes[1]);
-                                Neigh.triangtes[nnom[1]] = NewNomer + 1;
-                            }
+			Triangle AddingT;
+			Triangle DividT = Triangles.at(Reseach[1]);
+			Triangle Neigh;
 
-                            // modifed found treugol
-                            DividT.node[1] = point;
-                            DividT.triangtes[0] = NewNomer + 1;
-                            DividT.triangtes[2] = NewNomer;
+			//First Added			
+			AddingT.ID = NewNomer;
+			AddingT.Vertices[0] = DividT.Vertices[1];
+			AddingT.Vertices[1] = point;//AddingT.SetPoint(1, point);
+			AddingT.Vertices[2] = DividT.Vertices[0];
+			AddingT.NeighborIDs = { DividT.ID, DividT.NeighborIDs[2], NewNomer + 1 };
+			Triangles.push_back(AddingT);
+			
+			if (AddingT.NeighborIDs[1] != -1)
+			{
+				Neigh = Triangles.at(AddingT.NeighborIDs[1]);
+				nnom = GetNomers(NewNomer, AddingT.NeighborIDs[1]);
+				Neigh.NeighborIDs[nnom[1]] = NewNomer;
+			}
+			
+			AddingT.ID = NewNomer + 1;
+			AddingT.Vertices[0] = DividT.Vertices[2];
+			AddingT.Vertices[1] = point;
+			AddingT.Vertices[2] = DividT.Vertices[1];
+			AddingT.NeighborIDs = { NewNomer, DividT.NeighborIDs[0], DividT.ID };
+			Triangles.push_back(AddingT);
 
-                            /*
-                            for (int i = 0; i < 3; i++)
-                            {
-                                _triugol work = (_triugol)_Triangl[Nomera[i]];
-                                //ok = Flip(work.index, work.triangtes[0]);
-                                Flip(work.index, work.triangtes[1]);
-                                // ok |= Flip(work.index, work.triangtes[2]);
-                            }*/
-                            _triugol work = (_triugol)_Triangl[Reseach[1]];
-                            Flip(work.index, work.triangtes[1]);
-                            
-                            work = (_triugol)_Triangl[NewNomer];
-                            Flip(work.index, work.triangtes[1]);
-                            
-                            work = (_triugol)_Triangl[NewNomer + 1];
-                            Flip(work.index, work.triangtes[1]);
-                            break;
-                        }
-                    case 2:// Мы нашили раннее введенную вершину
-                        {
-                            CASH[Row, Column] = Reseach[1];
-                            break;
-                        }
-                    case 3: //мы нашли точку на ребре
-                        {
-                            CASH[Row, Column] = Reseach[2];
-                            int ver = Reseach[1];
-                            int Sl = _mod(ver);
-                            int Pr = _mod(ver + 1);
+			if (AddingT.NeighborIDs[1] != -1)
+			{
+				Neigh = Triangles.at(AddingT.NeighborIDs[1]);
+				nnom = GetNomers(NewNomer + 1, AddingT.NeighborIDs[1]);
+				Neigh.NeighborIDs[nnom[1]] = NewNomer + 1;
+			}
 
-                            _triugol Our = (_triugol)_Triangl[Reseach[2]];
-                            _triugol AddingT;
-                            int NewNomer = _Triangl.Count;
-                            
-                            
-                            //Adding First new triangl
-                            AddingT = new _triugol();
-                            AddingT.index = NewNomer ;
-                            AddingT.node[0] = Our.node[Pr];
-                            AddingT.node[1] = Our.node[ver];
-                            AddingT.node[2] = point;
-                           
-                            //Modify Our treangle
-                                                              
-                            //---------------------------------------------------------------
-                            // Ok
-                            if (Our.triangtes[Pr] != -1)
-                            {
-                                _triugol Neigh = (_triugol)_Triangl[Our.triangtes[Pr]];
-                                int[] nnom = GetNomers(Our.index, Neigh.index);
+			// modifed found treugol
+			DividT.Vertices[1] = point;
+			DividT.NeighborIDs[0] = NewNomer + 1;
+			DividT.NeighborIDs[2] = NewNomer;
 
-                                AddingT.triangtes = new int[] { NewNomer + 1, Our.index, Our.triangtes[Sl] };
-                                _Triangl.Add(AddingT);
-                                if (AddingT.triangtes[2] != -1)
-                                {
-                                    _triugol T3 = (_triugol)_Triangl[AddingT.triangtes[2]];
-                                    int[] nNew = GetNomers(AddingT.index, T3.index);
-                                    T3.triangtes[nNew[1]] = AddingT.index;
-                                }
-                                
-                                Our.node[ver] = point;
-                                Our.triangtes[Sl] = AddingT.index;
-          
-                                Our = new _triugol();
-                                Our = Neigh;
-                                ver = _mod(nnom[1] + 1);
-                                Sl = nnom[1];
-                                Pr = _mod(ver + 1);
+			/*
+			for (int i = 0; i < 3; i++)
+			{
+				_triugol work = (_triugol)_Triangl[Nomera[i]];
+				//ok = Flip(work.ID, work.NeighborIDs[0]);
+				Flip(work.ID, work.NeighborIDs[1]);
+				// ok |= Flip(work.ID, work.NeighborIDs[2]);
+			}*/
+			Triangle work = Triangles.at(Reseach[1]);
+			Flip(work.ID, work.NeighborIDs[1]);
 
-                                ////Adding Second new triangl
-                                AddingT = new _triugol();
-                                AddingT.index = NewNomer + 1;
-                                AddingT.node[0] = Our.node[Sl];
-                                AddingT.node[1] = point;
-                                AddingT.node[2] = Our.node[ver];
-                                AddingT.triangtes = new int[] { NewNomer, Our.triangtes[Pr], Our.index, };
-                                _Triangl.Add(AddingT);
-                                //Modify Our treangle
-                                Our.node[ver] = point;
-                                Our.triangtes[Pr] = AddingT.index;
+			work = Triangles.at(NewNomer);
+			Flip(work.ID, work.NeighborIDs[1]);
 
-                                if (AddingT.triangtes[1] != -1)
-                                {
-                                    _triugol T3 = (_triugol)_Triangl[AddingT.triangtes[1]];
-                                    int[] nNew = GetNomers(AddingT.index, T3.index);
-                                    T3.triangtes[nNew[1]] = AddingT.index;
-                                }
-                            }
-                            else
-                            {
+			work = Triangles.at(NewNomer + 1);
+			Flip(work.ID, work.NeighborIDs[1]);
+			break;
+		}
+		case 2:// Мы нашили раннее введенную вершину
+		{
+			CASH[Row][Column] = Reseach[1];
+			break;
+		}
+		case 3: //мы нашли точку на ребре
+		{
+			CASH[Row][ Column] = Reseach[2];
+			int ver = Reseach[1];
+			int Sl = Mod(ver);
+			int Pr = Mod(ver + 1);
 
-                                AddingT.triangtes = new int[] { -1, Our.index, Our.triangtes[Sl] };
-                                _Triangl.Add(AddingT);
-                                if (AddingT.triangtes[2] != -1)
-                                {
-                                    _triugol T3 = (_triugol)_Triangl[AddingT.triangtes[2]];
-                                    int[] nNew = GetNomers(AddingT.index, T3.index);
-                                    T3.triangtes[nNew[1]] = AddingT.index;
-                                }
-                                Our.node[ver] = point;
-                                Our.triangtes[Sl] = AddingT.index;
-                            }
+			Triangle Our = Triangles.at(Reseach[2]);
+			Triangle AddingT;
+			int NewNomer = Triangles.size();
+			
+			//Adding First new triangl
+			AddingT.ID = NewNomer;
+			AddingT.Vertices[0] = Our.Vertices[Pr];
+			AddingT.Vertices[1] = Our.Vertices[ver];
+			AddingT.Vertices[2] = point;
 
-                            //Flip(AddingT.index, AddingT.triangtes[0]);
-                            Flip(AddingT.index, AddingT.triangtes[1]);
-                            Flip(AddingT.index, AddingT.triangtes[2]);
-                            Flip(Our.index, Our.triangtes[0]);
-                            Flip(Our.index, Our.triangtes[1]);
-                            Flip(Our.index, Our.triangtes[2]);
+			//Modify Our treangle
 
-                            break;
-                        }
-                }
-               /* oldPoint = point;
-                oldTr = nTr;
-                oldC = Column;
-                oldR = Row;*/
-                // Point is added
-                N++;
-                if (N == SoC)
-                {
-                    CASH = CreateDinamicCAHS(CASH, m);
-                    m *= 2;
-                    SoC = m * m * R;
-                }
-            }
-        }
-        private int[] WalkToDarkOfMind(int nomer, _point P)
-        {
-            _triugol cTr = (_triugol)_Triangl[nomer];
-            _point p0 = cTr.node[0];
-            _point p1 = cTr.node[1];
-            _point p2 = cTr.node[2];
-            double Epss = 0.000000001;
+			//---------------------------------------------------------------
+			// Ok
+			if (Our.NeighborIDs[Pr] != -1)
+			{
+				Triangle Neigh =Triangles.at(Our.NeighborIDs[Pr]);
+				array<uint16_t, 2> nnom = GetNomers(Our.ID, Neigh.ID);
 
-            if (P != p0 & P != p1 & P != p2)
-            {
-                int ver = 2;
-                double sin2 = SIN(P, p0, p1);
-                //double sin1 = SIN(p0, p1, p2);
-                //<= Epss
-                if (Math.Abs(sin2) <= Epss) { return new int[] { 3, 0,cTr.index }; }
-                else
-                    if (sin2 < 0) { return new int[] { 1, cTr.triangtes[ver] }; }
-                    else
-                    {
-                        ver = 0;
-                        sin2 = SIN(P, p1, p2);
-                        if (Math.Abs(sin2) <= Epss) {  return new int[] { 3, 1, cTr.index }; }
-                        else
-                            if (sin2 < 0) { return new int[] { 1, cTr.triangtes[ver] }; }
-                            else
-                            {
-                                ver = 1;
-                                sin2 = SIN(P, p2, p0);
-                                if (Math.Abs(sin2) <= Epss) {  return new int[] { 3, 2, cTr.index }; }
-                                else
-                                    if (sin2 < 0) {  return new int[] { 1, cTr.triangtes[ver] }; }
-                                    else
-                                        return new int[] { 0, cTr.index };
-                            }
-                    }
-            }
-            else return new int[] { 2, cTr.index };
-        }
+				AddingT.NeighborIDs = { NewNomer + 1, Our.ID, Our.NeighborIDs[Sl] };
+				Triangles.push_back(AddingT);;
+				if (AddingT.NeighborIDs[2] != -1)
+				{
+					Triangle T3 =Triangles.at(AddingT.NeighborIDs[2]];
+					array<uint16_t, 2> nNew = GetNomers(AddingT.ID, T3.ID);
+					T3.NeighborIDs[nNew[1]] = AddingT.ID;
+				}
+
+				Our.Vertices[ver] = point; // -------- WHY IT HERE ? !!!!!!!!!!!!!!!!!!!!!!!!! 
+				Our.NeighborIDs[Sl] = AddingT.ID;
+								
+				Our = Neigh;
+				ver = Mod(nnom[1] + 1);
+				Sl = nnom[1];
+				Pr = Mod(ver + 1);
+
+				////Adding Second new triangl
+				
+				AddingT.ID = NewNomer + 1;
+				AddingT.Vertices[0] = Our.Vertices[Sl];
+				AddingT.Vertices[1] = point;
+				AddingT.Vertices[2] = Our.Vertices[ver];
+				AddingT.NeighborIDs = { NewNomer, Our.NeighborIDs[Pr], Our.ID, };
+				Triangles.push_back(AddingT);;
+				//Modify Our treangle
+				Our.Vertices[ver] = point;
+				Our.NeighborIDs[Pr] = AddingT.ID;
+
+				if (AddingT.NeighborIDs[1] != -1)
+				{
+					Triangle T3 =Triangles.at(AddingT.NeighborIDs[1]];
+					array<uint16_t, 2> nNew = GetNomers(AddingT.ID, T3.ID);
+					T3.NeighborIDs[nNew[1]] = AddingT.ID;
+				}
+			}
+			else
+			{
+
+				AddingT.NeighborIDs = new int[] { -1, Our.ID, Our.NeighborIDs[Sl] };
+				Triangles.push_back(AddingT);;
+				if (AddingT.NeighborIDs[2] != -1)
+				{
+					Triangle T3 =Triangles.at(AddingT.NeighborIDs[2]];
+					array<uint16_t, 2>  nNew = GetNomers(AddingT.ID, T3.ID);
+					T3.NeighborIDs[nNew[1]] = AddingT.ID;
+				}
+				Our.Vertices[ver] = point;
+				Our.NeighborIDs[Sl] = AddingT.ID;
+			}
+
+			//Flip(AddingT.ID, AddingT.NeighborIDs[0]);
+			Flip(AddingT.ID, AddingT.NeighborIDs[1]);
+			Flip(AddingT.ID, AddingT.NeighborIDs[2]);
+			Flip(Our.ID, Our.NeighborIDs[0]);
+			Flip(Our.ID, Our.NeighborIDs[1]);
+			Flip(Our.ID, Our.NeighborIDs[2]);
+
+			break;
+		}
+		}
+		/* oldPoint = point;
+		 oldTr = nTr;
+		 oldC = Column;
+		 oldR = Row;*/
+		 // Point is added
+		N++;
+		if (N == SoC)
+		{
+			CASH.
+			CASH = CreateDinamicCAHS(CASH, m);
+			m *= 2;
+			SoC = m * m * R;
+		}
+	}
+}
+
+
+array<uint16_t, 2> TriangulationDilane::WalkToDarkOfMind(int nomer, VertexModelLoader P)
+{
+	_triugol cTr =Triangles.at(nomer];
+	_point p0 = cTr.node[0];
+	_point p1 = cTr.node[1];
+	_point p2 = cTr.node[2];
+	double Epss = 0.000000001;
+
+	if (P != p0 & P != p1 & P != p2)
+	{
+		int ver = 2;
+		double sin2 = SIN(P, p0, p1);
+		//double sin1 = SIN(p0, p1, p2);
+		//<= Epss
+		if (Math.Abs(sin2) <= Epss) { return new int[] { 3, 0, cTr.index }; }
+		else
+			if (sin2 < 0) { return new int[] { 1, cTr.triangtes[ver] }; }
+			else
+			{
+				ver = 0;
+				sin2 = SIN(P, p1, p2);
+				if (Math.Abs(sin2) <= Epss) { return new int[] { 3, 1, cTr.index }; }
+				else
+					if (sin2 < 0) { return new int[] { 1, cTr.triangtes[ver] }; }
+					else
+					{
+						ver = 1;
+						sin2 = SIN(P, p2, p0);
+						if (Math.Abs(sin2) <= Epss) { return new int[] { 3, 2, cTr.index }; }
+						else
+							if (sin2 < 0) { return new int[] { 1, cTr.triangtes[ver] }; }
+							else
+								return new int[] { 0, cTr.index };
+					}
+			}
+	}
+	else return new int[] { 2, cTr.index };
+}
         private double SIN(_point p0, _point p1, _point p2)
         {
             return (p0.x - p1.x) * (p0.y - p2.y) - (p0.x - p2.x) * (p0.y - p1.y);
@@ -469,7 +462,7 @@
             Gan(0);
         }
         // helpers
-        private int _mod(int v)
+		uint16_t TriangulationDilane::Mod(uint16_t v)
         {
             switch (v)
             {
@@ -483,41 +476,43 @@
             return 0;
 
         }
-        private int[] GetNomers(int f, int s)
-        {
-            // Получаем номера противоположныж вершин смежных треугольников
-            // f - номер 1 треугольника
-            // s - номер 2 треугольника
-            // v1 - номер вершины в 1 треугольнике           
-            // v2 - номер вершины в 2 треугольнике
+        
+		array<uint16_t, 2>  TriangulationDilane::GetNomers(int f, int s)
+		{
+			// Получаем номера противоположныж вершин смежных треугольников
+			// f - номер 1 треугольника
+			// s - номер 2 треугольника
+			// v1 - номер вершины в 1 треугольнике           
+			// v2 - номер вершины в 2 треугольнике
 
-            _triugol First = (_triugol)_Triangl[f];
-            _triugol Second = (_triugol)_Triangl[s];
-            int[] result = new int[2];
-            _point p1_0, p1_1, p1_2;
-            _point p2_0, p2_1, p2_2;
+			_triugol First =Triangles.at(f];
+			_triugol Second =Triangles.at(s];
+			int[] result = new int[2];
+			_point p1_0, p1_1, p1_2;
+			_point p2_0, p2_1, p2_2;
 
-            p1_0 = First.node[0];
-            p1_1 = First.node[1];
-            p1_2 = First.node[2];
+			p1_0 = First.node[0];
+			p1_1 = First.node[1];
+			p1_2 = First.node[2];
 
-            p2_0 = Second.node[0];
-            p2_1 = Second.node[1];
-            p2_2 = Second.node[2];
+			p2_0 = Second.node[0];
+			p2_1 = Second.node[1];
+			p2_2 = Second.node[2];
 
-            _point p0 = p2_2;
-            int i = 2;
-            while (p0 == p1_0 | p0 == p1_1 | p0 == p1_2) { i--; p0 = Second.node[i]; }
-            result[1] = i;
+			_point p0 = p2_2;
+			int i = 2;
+			while (p0 == p1_0 | p0 == p1_1 | p0 == p1_2) { i--; p0 = Second.node[i]; }
+			result[1] = i;
 
-            p0 = p1_2;
-            i = 2;
-            while (p0 == p2_0 | p0 == p2_1 | p0 == p2_2) { i--; p0 = First.node[i]; }
-            result[0] = i;
+			p0 = p1_2;
+			i = 2;
+			while (p0 == p2_0 | p0 == p2_1 | p0 == p2_2) { i--; p0 = First.node[i]; }
+			result[0] = i;
 
-            //return new int[] {v1,v2};
-            return result;
-        }
+			//return new int[] {v1,v2};
+			return result;
+		}
+
         private bool _Nvertex(int _index, int v, int N)
         {
             // _inedx - номер текущего треугольника
@@ -535,8 +530,8 @@
                     case 2: { s1 = 0; s2 = 1; break; }
                 }
 
-                _triugol Neig = (_triugol)_Triangl[N];
-                _triugol cTr = (_triugol)_Triangl[_index];
+                _triugol Neig =Triangles.at(N];
+                _triugol cTr =Triangles.at(_index];
                 int i = 0;
                 while ((Neig.node[i] == cTr.node[s1]) |
                         (Neig.node[i] == cTr.node[s2])) { i++; }
@@ -550,7 +545,7 @@
             ERROR = error3 = error1 = error2 = false;
             for (int i = 0; i < _Triangl.Count; i++)
             {
-                _triugol ctr = (_triugol)_Triangl[i];
+                _triugol ctr =Triangles.at(i];
                 error1 = _Nvertex(i, 0, ctr.triangtes[0]);
                 error2 = _Nvertex(i, 1, ctr.triangtes[1]);
                 error3 = _Nvertex(i, 2, ctr.triangtes[2]);
@@ -563,7 +558,7 @@
 
             for (int i = 0; i < _Triangl.Count; i++)
             {
-                _triugol work = (_triugol)_Triangl[i];
+                _triugol work =Triangles.at(i];
 
                 if (Flip(work.index, work.triangtes[0])) MessageBox.Show("0");
 
@@ -581,7 +576,7 @@
             double z1, z2, z3;
             for (int i = 0; i < _Triangl.Count; i++)
             {
-                t = (_triugol)_Triangl[i];
+                t =Triangles.at(i];
                 z1 = t.node[0].Z;
                 z2 = t.node[1].Z;
                 z3 = t.node[2].Z;
@@ -662,7 +657,7 @@
             CustomVertex.PositionColored[] vertex = new CustomVertex.PositionColored[_Triangl.Count * 3];
             for (int i = 0; i < _Triangl.Count; i++)
             {
-                t = (_triugol)_Triangl[i];
+                t =Triangles.at(i];
                 x = t.node[0].x / _Width;
                 y = t.node[0].y / _Width;
                 _color = map.GetPixel((int)(x * 99), (int)(y * 99));
@@ -785,80 +780,10 @@
             device.Present();
             
         }
-        private void SetupCamera()
-        {
-            device.Transform.Projection = Matrix.PerspectiveFovLH((float)Math.PI / 4, this.Width / this.Height, 0.0f, 50.0f);
-            device.Transform.View = Matrix.LookAtLH(new Vector3(0, 0, 3f), new Vector3(), new Vector3(0, 1, 0));
-            device.Transform.World = Matrix.RotationYawPitchRoll(rx,ry,0) *Matrix.Translation(mx, my, mz);
-            device.RenderState.Lighting = false;
-        }
-        private void MainCanvas_Paint(object sender, PaintEventArgs e)
-        {
-            // if (drawing) DrawIT();
-        }
-        private void MainCanvas_DoubleClick(object sender, EventArgs e)
-        {
-            
-           // DrawIT();
-        }
-        private void button1_Click(object sender, EventArgs e)
-        {
-            this.Dispose();
-        }
 
-        private void MainCanvas_MouseDown(object sender, MouseEventArgs e)
-        {
-            mDown = true;
-            iPoint = new Point(e.X, e.Y);
-        }
 
-        private void MainCanvas_MouseUp(object sender, MouseEventArgs e)
-        {
-            mDown = false;
-        }
 
-        private void MainCanvas_MouseMove(object sender, MouseEventArgs e)
-        {
-            if (mDown)
-            {
-                if (e.Button == MouseButtons.Left)
-                {
-                    my += Math.Sign(-e.Y + iPoint.Y) * 0.04f;
-                    mx += Math.Sign(-e.X + iPoint.X) * 0.04f;
-                    iPoint = new Point(e.X, e.Y);
-                    DrawIT();
-                }
-                else
-                    if (e.Button == MouseButtons.Right)
-                    {
-                        ry += Math.Sign(-e.Y + iPoint.Y) * 0.1f;
-                        rx += Math.Sign(e.X - iPoint.X) * 0.1f;
-                        iPoint = new Point(e.X, e.Y);
-                        DrawIT();
-                    }
-                    else
-                        if (e.Button == (MouseButtons.Left | MouseButtons.Right))
-                        {
-                           mz += Math.Sign(-e.Y + iPoint.Y) * 0.1f;
-                            //rz += Math.Sign(e.X - iPoint.X) * 0.1f;
-                            iPoint = new Point(e.X, e.Y);
-                            DrawIT();
-                        }
-                
-                }
-        }
-
-        private void MainCanvas_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
-        {
-            MessageBox.Show("privet ");
-        }
-
-        private void button2_Click(object sender, EventArgs e)
-        {
-            colorDialog1.ShowDialog();
-            izocolor = colorDialog1.Color;
-        }
-
+ 
         
         //------------------------------------------------------------------
-    }
+    

@@ -39,6 +39,9 @@
     <ClInclude Include="HelperStruct.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TriangulationDilane.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="myAppClass.cpp">

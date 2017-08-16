@@ -71,5 +71,6 @@ void ConvexHullBuilder::Build_HullPartition(vector<VertexModelLoader> *inPutDate
 
 	}
 
+	inPutDate->swap(tmpVector);
 }
     
