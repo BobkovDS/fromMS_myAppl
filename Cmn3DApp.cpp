@@ -45,11 +45,14 @@ LRESULT Cmn3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		}
 		else if (wParam == VK_LEFT) MoveObj(-1);
 		else if (wParam == VK_RIGHT) MoveObj(1);
-		else if (wParam == VK_SPACE) { ModeFlag = !ModeFlag; }
-		else if (wParam == 'F')	{ Mode = FaceMode;}
-		else if (wParam == 'L') { Mode = LineMode; }
-		else if (wParam == 'P') { Mode = PointMode; }
+		else if (wParam == VK_SPACE) { ModeFlag = !ModeFlag; ResetPSO = true;}
+		else if (wParam == 'F')	{ Mode = FaceMode; ResetPSO = true;}
+		else if (wParam == 'L') { Mode = LineMode; ResetPSO = true;}
+		else if (wParam == 'P') { Mode = PointMode; ResetPSO = true;}
 		else if (wParam == 'Z') { Pause = !Pause;}
+		else if (wParam == 'C') {
+			FrontCounterClockwise = !FrontCounterClockwise; ResetPSO = true;
+		}
 		else if (wParam == VK_OEM_PLUS)
 			FaceCountToDraw++;
 		else if (wParam == VK_OEM_MINUS)

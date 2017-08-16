@@ -41,6 +41,8 @@ protected: //Child class also can use it
 	int FaceCountToDraw = 1;
 	bool prevModeFlag = false;
 	bool Pause = false;
+	bool FrontCounterClockwise = true;
+	bool ResetPSO = false;
 	UINT m_rtvDescriptorSize = 0;
 	float AspectRatio = 1.0f;
 

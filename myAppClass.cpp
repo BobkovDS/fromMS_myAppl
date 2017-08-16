@@ -38,7 +38,7 @@ void myAppClass::Initialize()
 	
 	mPhi = 5.0f;
 	mTheta = 1.5f*3.14f;
-	mRadius = 2.0f;
+	mRadius = 20.5f;
 
 	ThrowIfFailed(m_CmdList->Reset(m_CmdAllocator.Get(), nullptr));
 
@@ -64,10 +64,9 @@ void myAppClass::MoveObj(int Sig)
 
 void myAppClass::Draw()
 {
-	if (ModeFlag != prevModeFlag)
+	if (ResetPSO)
 	{
-		BuildPSO();
-		prevModeFlag = ModeFlag;
+		BuildPSO();		
 	}
 	
 	ThrowIfFailed(m_CmdAllocator->Reset());
@@ -265,8 +264,8 @@ void myAppClass::BuildBoxGeometry()
 {
 	// Load model from file 
 	ModelLoaderClass ModelLoader;
-	//ModelLoader.LoadModelFromFile(L"PlainModel.obj");
-	ModelLoader.LoadModelFromFile(L"temp.obj");
+	ModelLoader.LoadModelFromFile(L"PlainModel.obj");
+//	ModelLoader.LoadModelFromFile(L"m4.obj");
 
 	int VertexCount = ModelLoader.GetVectorSizeV();
 		
@@ -375,6 +374,7 @@ void myAppClass::BuildPSO()
 	else if (Mode == PointMode)
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
 	
+	psoDesc.RasterizerState.FrontCounterClockwise = FrontCounterClockwise;
 	psoDesc.NumRenderTargets = 1;
 	psoDesc.RTVFormats[0] = m_BackBufferFormat;
 	psoDesc.DSVFormat = m_DepthStencilFormat;
