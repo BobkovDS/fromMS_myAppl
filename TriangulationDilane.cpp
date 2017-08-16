@@ -1,19 +1,6 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Text;
-using System.Windows.Forms;
-using Microsoft.DirectX;
-using Microsoft.DirectX.Direct3D;
 
 
 
-
-namespace ConvexHull
-{
     public partial class ConvexHullApl : Form
     {
         ArrayList _date;
@@ -875,4 +862,3 @@ namespace ConvexHull
         
         //------------------------------------------------------------------
     }
-}

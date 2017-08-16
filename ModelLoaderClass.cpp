@@ -1,5 +1,5 @@
 #include "ModelLoaderClass.h"
-#include <array>
+
 
 using namespace std;
 ModelLoaderClass::ModelLoaderClass()
@@ -11,8 +11,7 @@ ModelLoaderClass::~ModelLoaderClass()
 }
 
 bool ModelLoaderClass::LoadModelFromFile(const std::wstring& filename)
-{
-
+{	
 	std::ifstream inputFile(filename);
 	std::string inputLine;
 	std::wstring outPutLine;
