@@ -146,7 +146,9 @@
     <ClInclude Include="ModelLoaderClass.h" />
     <ClInclude Include="myAppClass.h" />
     <ClInclude Include="Timer.h" />
-    <ClInclude Include="TriangulationDilane.h" />
+    <ClInclude Include="TriangulationDilane.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="UploadBuffer.h" />
   </ItemGroup>
   <ItemGroup>
@@ -155,7 +157,9 @@
     <ClCompile Include="ModelLoaderClass.cpp" />
     <ClCompile Include="myAppClass.cpp" />
     <ClCompile Include="Timer.cpp" />
-    <ClCompile Include="TriangulationDilane.cpp" />
+    <ClCompile Include="TriangulationDilane.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

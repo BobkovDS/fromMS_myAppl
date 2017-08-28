@@ -2,6 +2,15 @@
 
 using namespace std;
 
+
+ConvexHullBuilder::ConvexHullBuilder()
+{
+}
+
+ConvexHullBuilder::~ConvexHullBuilder()
+{
+}
+
 void ConvexHullBuilder::Build_ConvexHull(vector<VertexModelLoader> *inPutDate)
 {
 	SortVector(inPutDate);
@@ -22,18 +31,20 @@ void ConvexHullBuilder::Build_ConvexHull(vector<VertexModelLoader> *inPutDate)
 		b = betwPoint - _rightPoint;
 
 		float det = a^b;
-		if (det > 0) _upperPartition.push_back(betwPoint);
+		if (det < 0) _upperPartition.push_back(betwPoint);
 		else _lowerPartition.push_back(betwPoint);
 	}
 
 	//MessageBox.Show("This is partition");
-	Build_HullPartition(&_upperPartition, 1);
-	Build_HullPartition(&_lowerPartition, -1);
+	Build_HullPartition(&_upperPartition, -1);
+	Build_HullPartition(&_lowerPartition, 1);
 
 	revVectorIterator = _lowerHull.rbegin(); /// -- check how Iterator works, but here we don't need it
 
-	for (int i = _lowerPartition.size() - 1; i > 0; i--)
+	for (int i = _lowerPartition.size() - 2; i > 0; i--)
 		_upperPartition.push_back(_lowerPartition.at(i));
+
+	_result_convex_hull = _upperPartition;
 }
 
 void ConvexHullBuilder::Build_HullPartition(vector<VertexModelLoader> *inPutDate, int factor)
@@ -46,7 +57,7 @@ void ConvexHullBuilder::Build_HullPartition(vector<VertexModelLoader> *inPutDate
 	tmpVector.push_back(_leftPoint);
 	inPutDate->push_back(_rightPoint);
 
-	int pos = inPutDate->size()-1;
+	int pos = inPutDate->size();
 	while (pos > 0)
 	{
 		tmpVector.push_back(inPutDate->at(inPutDate->size()- pos));
@@ -73,4 +84,23 @@ void ConvexHullBuilder::Build_HullPartition(vector<VertexModelLoader> *inPutDate
 
 	inPutDate->swap(tmpVector);
 }
-    
+void ConvexHullBuilder::SortVector(std::vector<VertexModelLoader> *inPutDate)
+{
+	VertexModelLoader tPoint;
+	for (int i = 0; i < inPutDate->size()-1; i++)
+	{
+		float MaxValue = inPutDate->at(i).x;		
+		int IndexForMaxValue = i;
+		for (int j = 1; j < inPutDate->size()-i; j++)
+		{
+			if (inPutDate->at(j).x < inPutDate->at(j-1).x)
+			{
+				tPoint = inPutDate->at(j);
+				inPutDate->at(j) = inPutDate->at(j-1);
+				inPutDate->at(j-1) = tPoint;
+				j--;
+			}
+
+		}
+	}
+}

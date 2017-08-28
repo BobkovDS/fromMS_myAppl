@@ -264,6 +264,7 @@ void myAppClass::BuildBoxGeometry()
 {
 	// Load model from file 
 	ModelLoaderClass ModelLoader;
+	ModelLoader.GenerateDelone();
 	ModelLoader.LoadModelFromFile(L"PlainModel.obj");
 //	ModelLoader.LoadModelFromFile(L"m4.obj");
 

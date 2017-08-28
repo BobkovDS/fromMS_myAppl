@@ -1,5 +1,6 @@
 #include "ModelLoaderClass.h"
-
+#include "TriangulationDilane.h"
+#include "ConvexHullBuilder.h"
 
 using namespace std;
 ModelLoaderClass::ModelLoaderClass()
@@ -461,4 +462,48 @@ void ModelLoaderClass::DividePolygon(uint16_t devidePoint, std::vector<std::uint
 	
 	TrangulationOfPolygon(&Polygon2);
 	TrangulationOfPolygon(&Polygon1);
+}
+
+// ------------------------ DELONE --------------------------------
+
+void ModelLoaderClass::GenerateDelone()
+{	
+	vertices.clear();
+	VertexModelLoader tPoint;
+
+	tPoint.x = 2;
+	tPoint.y = 2;
+	vertices.push_back(tPoint);
+
+	tPoint.x = 4;
+	tPoint.y = 3;
+	vertices.push_back(tPoint);
+
+	tPoint.x = 5;
+	tPoint.y = 5;
+	vertices.push_back(tPoint);
+
+	tPoint.x = 2;
+	tPoint.y = 4;
+	vertices.push_back(tPoint);
+
+	tPoint.x = 3;
+	tPoint.y = 5;
+	vertices.push_back(tPoint);
+
+	tPoint.x = 6;
+	tPoint.y = 1;
+	vertices.push_back(tPoint);
+
+	tPoint.x = 8;
+	tPoint.y = 4;
+	vertices.push_back(tPoint);
+
+	ConvexHullBuilder convexBuilder;
+	TriangulationDilane DeloneCreator;
+
+	convexBuilder.Build_ConvexHull(&vertices);
+	DeloneCreator.CreateTriangulation(&convexBuilder._result_convex_hull);
+	DeloneCreator.DelonePrepare();
+	DeloneCreator.DeloneIt(&vertices);
 }

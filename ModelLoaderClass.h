@@ -12,6 +12,7 @@ public:
 	ModelLoaderClass();
 	~ModelLoaderClass();
 
+	void GenerateDelone();
 	bool LoadModelFromFile(const std::wstring& filename);
 	int GetVectorSizeV();
 	int GetVectorSizeI();
@@ -32,6 +33,7 @@ private:
 	std::vector<std::uint16_t> NewPolyIndices;
 	std::vector<VertexModelLoader> projection; // z-coordinate does not used here
 
+	
 	void TrangulationOfPolygon(std::vector<std::uint16_t> *PolygonIndex);
 	bool Check3PointsOnLine(VertexModelLoader a, VertexModelLoader b, VertexModelLoader p);
 	bool FindProjectPlane(VertexModelLoader p1, VertexModelLoader p2, VertexModelLoader p3, VertexModelLoader p4);

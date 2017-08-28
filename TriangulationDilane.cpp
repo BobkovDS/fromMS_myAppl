@@ -1,6 +1,14 @@
 #include "TriangulationDilane.h"
 using namespace std;
 
+TriangulationDilane::TriangulationDilane()
+{
+}
+
+TriangulationDilane::~TriangulationDilane()
+{
+}
+
 /*
          ArrayList _date;
         ArrayList _convexHull;
@@ -157,7 +165,7 @@ bool TriangulationDilane::Flip(int F, int S)
 
 			if (triangleA.NeighborIDs[protiv[0]] != -1)
 			{
-				triangleC = Triangles.at(triangleA..NeighborIDs[protiv[0]]);
+				triangleC = Triangles.at(triangleA.NeighborIDs[protiv[0]]);
 				nNew = GetNomers(triangleA.ID, triangleA.NeighborIDs[protiv[0]]);
 				triangleC.NeighborIDs[nNew[1]] = triangleA.ID;
 			}
@@ -180,7 +188,10 @@ bool TriangulationDilane::Flip(int F, int S)
 void TriangulationDilane::DeloneIt(vector<VertexModelLoader> *inPutDate)
 {
 	int m = 2, N = 0, R = 6;
-	array<array<uint16_t, m>, m> CASH;
+	array<uint16_t, 2> CASH;
+	vector<uint16_t> tCASH;
+	tCASH.resize(m*m);
+	
 	//CASH[0] = { 0, 0 };
 	//CASH[1] = { 0, 0 };
 	
@@ -203,17 +214,19 @@ void TriangulationDilane::DeloneIt(vector<VertexModelLoader> *inPutDate)
 		 else*/
 		{
 			Row = floor(point.x / _Width * m);
-			Column = floor(point.y / _Width * m);
-			nTr = CASH[Row][Column];
+			Column = floor(point.y / _Width * m);			
+			//nTr = CASH[Row,Column];
+			nTr = tCASH.at(Row*m + Column);
 		}
-		array<uint16_t,2> Reseach = { 1, nTr };
+		array<uint16_t,3> Reseach = { 1, nTr,0 };
 		while (Reseach[0] == 1) { Reseach = WalkToDarkOfMind(Reseach[1], point); }
 		switch (Reseach[0])
 		{
 		case 0: // Мы нашли точку внутри треугольника
 		{
-			CASH[Row][Column] = Reseach[1];
-			int NewNomer = Triangles.size();
+			//CASH[Row, Column] = Reseach[1];
+			tCASH.at(Row*m + Column) = Reseach[1];
+			uint16_t NewNomer = Triangles.size();
 			array<uint16_t, 3> Nomera = { Reseach[1], NewNomer, NewNomer + 1 };
 			array<uint16_t, 2> nnom;
 
@@ -226,7 +239,8 @@ void TriangulationDilane::DeloneIt(vector<VertexModelLoader> *inPutDate)
 			AddingT.Vertices[0] = DividT.Vertices[1];
 			AddingT.Vertices[1] = point;//AddingT.SetPoint(1, point);
 			AddingT.Vertices[2] = DividT.Vertices[0];
-			AddingT.NeighborIDs = { DividT.ID, DividT.NeighborIDs[2], NewNomer + 1 };
+			uint16_t tNewNomer = NewNomer + 1;
+			AddingT.NeighborIDs = { DividT.ID, DividT.NeighborIDs[2],tNewNomer };
 			Triangles.push_back(AddingT);
 			
 			if (AddingT.NeighborIDs[1] != -1)
@@ -274,20 +288,22 @@ void TriangulationDilane::DeloneIt(vector<VertexModelLoader> *inPutDate)
 			break;
 		}
 		case 2:// Мы нашили раннее введенную вершину
-		{
-			CASH[Row][Column] = Reseach[1];
+		{			
+			//CASH[Row][Column] = Reseach[1];
+			tCASH.at(Row*m + Column) = Reseach[1];
 			break;
 		}
 		case 3: //мы нашли точку на ребре
 		{
-			CASH[Row][ Column] = Reseach[2];
+			//CASH[Row][ Column] = Reseach[2];
+			tCASH.at(Row*m + Column) = Reseach[2];
 			int ver = Reseach[1];
 			int Sl = Mod(ver);
 			int Pr = Mod(ver + 1);
 
 			Triangle Our = Triangles.at(Reseach[2]);
 			Triangle AddingT;
-			int NewNomer = Triangles.size();
+			uint16_t NewNomer = Triangles.size();
 			
 			//Adding First new triangl
 			AddingT.ID = NewNomer;
@@ -303,12 +319,13 @@ void TriangulationDilane::DeloneIt(vector<VertexModelLoader> *inPutDate)
 			{
 				Triangle Neigh =Triangles.at(Our.NeighborIDs[Pr]);
 				array<uint16_t, 2> nnom = GetNomers(Our.ID, Neigh.ID);
+				uint16_t tNewNomer = NewNomer+1;
 
-				AddingT.NeighborIDs = { NewNomer + 1, Our.ID, Our.NeighborIDs[Sl] };
+				AddingT.NeighborIDs = { tNewNomer, Our.ID, Our.NeighborIDs[Sl] };
 				Triangles.push_back(AddingT);;
 				if (AddingT.NeighborIDs[2] != -1)
 				{
-					Triangle T3 =Triangles.at(AddingT.NeighborIDs[2]];
+					Triangle T3 =Triangles.at(AddingT.NeighborIDs[2]);
 					array<uint16_t, 2> nNew = GetNomers(AddingT.ID, T3.ID);
 					T3.NeighborIDs[nNew[1]] = AddingT.ID;
 				}
@@ -335,7 +352,7 @@ void TriangulationDilane::DeloneIt(vector<VertexModelLoader> *inPutDate)
 
 				if (AddingT.NeighborIDs[1] != -1)
 				{
-					Triangle T3 =Triangles.at(AddingT.NeighborIDs[1]];
+					Triangle T3 =Triangles.at(AddingT.NeighborIDs[1]);
 					array<uint16_t, 2> nNew = GetNomers(AddingT.ID, T3.ID);
 					T3.NeighborIDs[nNew[1]] = AddingT.ID;
 				}
@@ -343,11 +360,11 @@ void TriangulationDilane::DeloneIt(vector<VertexModelLoader> *inPutDate)
 			else
 			{
 
-				AddingT.NeighborIDs = new int[] { -1, Our.ID, Our.NeighborIDs[Sl] };
+//				AddingT.NeighborIDs = new int[] { -1, Our.ID, Our.NeighborIDs[Sl] };           ---Coment just to BUILD
 				Triangles.push_back(AddingT);;
 				if (AddingT.NeighborIDs[2] != -1)
 				{
-					Triangle T3 =Triangles.at(AddingT.NeighborIDs[2]];
+					Triangle T3 =Triangles.at(AddingT.NeighborIDs[2]);
 					array<uint16_t, 2>  nNew = GetNomers(AddingT.ID, T3.ID);
 					T3.NeighborIDs[nNew[1]] = AddingT.ID;
 				}
@@ -372,9 +389,8 @@ void TriangulationDilane::DeloneIt(vector<VertexModelLoader> *inPutDate)
 		 // Point is added
 		N++;
 		if (N == SoC)
-		{
-			CASH.
-			CASH = CreateDinamicCAHS(CASH, m);
+		{			
+			tCASH = CreateDinamicCAHS(tCASH, m);
 			m *= 2;
 			SoC = m * m * R;
 		}
@@ -382,60 +398,67 @@ void TriangulationDilane::DeloneIt(vector<VertexModelLoader> *inPutDate)
 }
 
 
-array<uint16_t, 2> TriangulationDilane::WalkToDarkOfMind(int nomer, VertexModelLoader P)
+array<uint16_t, 3> TriangulationDilane::WalkToDarkOfMind(int nomer, VertexModelLoader P)
 {
-	_triugol cTr =Triangles.at(nomer];
-	_point p0 = cTr.node[0];
-	_point p1 = cTr.node[1];
-	_point p2 = cTr.node[2];
+	Triangle cTr = Triangles.at(nomer);
+
+	VertexModelLoader p0 = cTr.Vertices[0];
+	VertexModelLoader p1 = cTr.Vertices[1];
+	VertexModelLoader p2 = cTr.Vertices[2];
 	double Epss = 0.000000001;
+
 
 	if (P != p0 & P != p1 & P != p2)
 	{
 		int ver = 2;
 		double sin2 = SIN(P, p0, p1);
-		//double sin1 = SIN(p0, p1, p2);
+		double sin1 = SIN(p0, p1, p2);
 		//<= Epss
-		if (Math.Abs(sin2) <= Epss) { return new int[] { 3, 0, cTr.index }; }
+		if (abs(sin2) <= Epss) { return { 3, 0, cTr.ID }; }
 		else
-			if (sin2 < 0) { return new int[] { 1, cTr.triangtes[ver] }; }
+			if (sin2 < 0) { return { 1, cTr.NeighborIDs[ver],0 }; }
 			else
 			{
 				ver = 0;
 				sin2 = SIN(P, p1, p2);
-				if (Math.Abs(sin2) <= Epss) { return new int[] { 3, 1, cTr.index }; }
+				if (abs(sin2) <= Epss) { return { 3, 1, cTr.ID }; }
 				else
-					if (sin2 < 0) { return new int[] { 1, cTr.triangtes[ver] }; }
+					if (sin2 < 0) { return { 1, cTr.NeighborIDs[ver] }; }
 					else
 					{
 						ver = 1;
 						sin2 = SIN(P, p2, p0);
-						if (Math.Abs(sin2) <= Epss) { return new int[] { 3, 2, cTr.index }; }
+						if (abs(sin2) <= Epss) { return { 3, 2, cTr.ID }; }
 						else
-							if (sin2 < 0) { return new int[] { 1, cTr.triangtes[ver] }; }
+							if (sin2 < 0) { return  { 1, cTr.NeighborIDs[ver] }; }
 							else
-								return new int[] { 0, cTr.index };
+								return { 0, cTr.ID };
 					}
 			}
 	}
-	else return new int[] { 2, cTr.index };
+	else return { 2, cTr.ID, 0 };
 }
-        private double SIN(_point p0, _point p1, _point p2)
-        {
-            return (p0.x - p1.x) * (p0.y - p2.y) - (p0.x - p2.x) * (p0.y - p1.y);
-        }
-        private int[,] CreateDinamicCAHS(int[,] oldCASH, int oldM)
-        {
-            int[,] nCASH = new int[oldM * 2, oldM * 2];
-            for (int i = 0; i < oldM; i++)
-                for (int j = 0; j < oldM; j++)
 
-                    nCASH[2 * i, 2 * j] = nCASH[2 * i, 2 * j + 1] =
-                    nCASH[2 * i + 1, 2 * j] = nCASH[2 * i + 1, 2 * j + 1] = oldCASH[i, j];
+double TriangulationDilane::SIN(VertexModelLoader p0, VertexModelLoader p1, VertexModelLoader p2)
+{
+	return (p0.x - p1.x) * (p0.y - p2.y) - (p0.x - p2.x) * (p0.y - p1.y);
+}
 
-            return nCASH;
-        }
-        private void Gan(int r)
+vector<uint16_t> TriangulationDilane::CreateDinamicCAHS(vector<uint16_t> oldCASH, int oldM)
+{
+	vector<uint16_t> nCASH;
+	nCASH.resize(oldM*oldM);
+
+	for (int i = 0; i < oldM; i++)
+		for (int j = 0; j < oldM; j++)
+
+			nCASH[2 * i, 2 * j] = nCASH[2 * i, 2 * j + 1] =
+			nCASH[2 * i + 1, 2 * j] = nCASH[2 * i + 1, 2 * j + 1] = oldCASH[i, j];
+
+	return nCASH;
+}
+/*
+        void Gan(int r)
         {
             _state = true;
             _date = new ArrayList();
@@ -457,116 +480,123 @@ array<uint16_t, 2> TriangulationDilane::WalkToDarkOfMind(int nomer, VertexModelL
                 }
             }
         }
-        private void GanButton_Click(object sender, EventArgs e)
+        //void GanButton_Click(object sender, EventArgs e)
+		void GanButton_Click()
         {
             Gan(0);
         }
+*/
         // helpers
-		uint16_t TriangulationDilane::Mod(uint16_t v)
-        {
-            switch (v)
-            {
-                case 0: return 1;
-                case 1: return 2;
-                case 2: return 0;
-                case 3: return 1;
-                case 4: return 2;
-                case 5: return 0;
-            }
-            return 0;
+uint16_t TriangulationDilane::Mod(uint16_t v)
+{
+	switch (v)
+	{
+	case 0: return 1;
+	case 1: return 2;
+	case 2: return 0;
+	case 3: return 1;
+	case 4: return 2;
+	case 5: return 0;
+	}
+	return 0;
 
-        }
+}
         
-		array<uint16_t, 2>  TriangulationDilane::GetNomers(int f, int s)
+array<uint16_t, 2>  TriangulationDilane::GetNomers(int f, int s)
+{
+	// Получаем номера противоположныж вершин смежных треугольников
+	// f - номер 1 треугольника
+	// s - номер 2 треугольника
+	// v1 - номер вершины в 1 треугольнике           
+	// v2 - номер вершины в 2 треугольнике
+
+	Triangle First = Triangles.at(f);
+	Triangle Second = Triangles.at(s);
+	array<uint16_t, 2> result;
+	VertexModelLoader p1_0, p1_1, p1_2;
+	VertexModelLoader p2_0, p2_1, p2_2;
+
+	p1_0 = First.Vertices[0];
+	p1_1 = First.Vertices[1];
+	p1_2 = First.Vertices[2];
+
+	p2_0 = Second.Vertices[0];
+	p2_1 = Second.Vertices[1];
+	p2_2 = Second.Vertices[2];
+
+	VertexModelLoader p0 = p2_2;
+	int i = 2;
+	while (p0 == p1_0 | p0 == p1_1 | p0 == p1_2) { i--; p0 = Second.Vertices[i]; }
+	result[1] = i;
+
+	p0 = p1_2;
+	i = 2;
+	while (p0 == p2_0 | p0 == p2_1 | p0 == p2_2) { i--; p0 = First.Vertices[i]; }
+	result[0] = i;
+
+	//return new int[] {v1,v2};
+	return result;
+}
+
+bool TriangulationDilane::_Nvertex(int _index, int v, int N)
+{
+	// _inedx - номер текущего треугольника
+	// v - номер текущей проверяемой вершины
+	// N - номер текущего соседа
+
+	bool error = false;
+	if (N != -1)
+	{
+		int s1 = 0, s2 = 0;
+		switch (v)
 		{
-			// Получаем номера противоположныж вершин смежных треугольников
-			// f - номер 1 треугольника
-			// s - номер 2 треугольника
-			// v1 - номер вершины в 1 треугольнике           
-			// v2 - номер вершины в 2 треугольнике
-
-			_triugol First =Triangles.at(f];
-			_triugol Second =Triangles.at(s];
-			int[] result = new int[2];
-			_point p1_0, p1_1, p1_2;
-			_point p2_0, p2_1, p2_2;
-
-			p1_0 = First.node[0];
-			p1_1 = First.node[1];
-			p1_2 = First.node[2];
-
-			p2_0 = Second.node[0];
-			p2_1 = Second.node[1];
-			p2_2 = Second.node[2];
-
-			_point p0 = p2_2;
-			int i = 2;
-			while (p0 == p1_0 | p0 == p1_1 | p0 == p1_2) { i--; p0 = Second.node[i]; }
-			result[1] = i;
-
-			p0 = p1_2;
-			i = 2;
-			while (p0 == p2_0 | p0 == p2_1 | p0 == p2_2) { i--; p0 = First.node[i]; }
-			result[0] = i;
-
-			//return new int[] {v1,v2};
-			return result;
+		case 0: { s1 = 1; s2 = 2; break; }
+		case 1: { s1 = 0; s2 = 2; break; }
+		case 2: { s1 = 0; s2 = 1; break; }
 		}
 
-        private bool _Nvertex(int _index, int v, int N)
-        {
-            // _inedx - номер текущего треугольника
-            // v - номер текущей проверяемой вершины
-            // N - номер текущего соседа
+		Triangle Neig = Triangles.at(N);
+		Triangle cTr = Triangles.at(_index);
+		int i = 0;
+		while ((Neig.Vertices[i] == cTr.Vertices[s1]) |
+			(Neig.Vertices[i] == cTr.Vertices[s2])) {
+			i++;
+		}
+		if (Neig.NeighborIDs[i] != _index) error = true;
+	}
+	return error;
+}
 
-            bool error = false;
-            if (N != -1)
+        void TriangulationDilane::DebugFunction()
+        {            bool myERROR, error1, error2, error3;
+			myERROR = error3 = error1 = error2 = false;
+            for (int i = 0; i < Triangles.size(); i++)
             {
-                int s1 = 0, s2 = 0;
-                switch (v)
-                {
-                    case 0: { s1 = 1; s2 = 2; break; }
-                    case 1: { s1 = 0; s2 = 2; break; }
-                    case 2: { s1 = 0; s2 = 1; break; }
-                }
-
-                _triugol Neig =Triangles.at(N];
-                _triugol cTr =Triangles.at(_index];
-                int i = 0;
-                while ((Neig.node[i] == cTr.node[s1]) |
-                        (Neig.node[i] == cTr.node[s2])) { i++; }
-                if (Neig.triangtes[i] != _index) error = true;
+				Triangle ctr =Triangles.at(i);
+                error1 = _Nvertex(i, 0, ctr.NeighborIDs[0]);
+                error2 = _Nvertex(i, 1, ctr.NeighborIDs[1]);
+                error3 = _Nvertex(i, 2, ctr.NeighborIDs[2]);
+				myERROR = myERROR | error1 | error2 | error3;
             }
-            return error;
-        }
-        private void DebugFunction()
-        {
-            bool ERROR, error1, error2, error3;
-            ERROR = error3 = error1 = error2 = false;
-            for (int i = 0; i < _Triangl.Count; i++)
+            if (myERROR)
             {
-                _triugol ctr =Triangles.at(i];
-                error1 = _Nvertex(i, 0, ctr.triangtes[0]);
-                error2 = _Nvertex(i, 1, ctr.triangtes[1]);
-                error3 = _Nvertex(i, 2, ctr.triangtes[2]);
-                ERROR = ERROR | error1 | error2 | error3;
-            }
-            if (ERROR)
-            {
-                MessageBox.Show("Error. Неправильные соседи");
+                MessageBox(0, L"Error. Неправильные соседи",0,0);
+				
             }
 
-            for (int i = 0; i < _Triangl.Count; i++)
+            for (int i = 0; i < Triangles.size(); i++)
             {
-                _triugol work =Triangles.at(i];
+				Triangle work =Triangles.at(i);
+				std::wstring text;
+				
+                if (Flip(work.ID, work.NeighborIDs[0])) MessageBox(0, L"0", 0, 0);
 
-                if (Flip(work.index, work.triangtes[0])) MessageBox.Show("0");
+                if (Flip(work.ID, work.NeighborIDs[1])) MessageBox(0, L"1", 0, 0);
 
-                if (Flip(work.index, work.triangtes[1])) MessageBox.Show("1");
-
-                if (Flip(work.index, work.triangtes[2])) MessageBox.Show("2");
+                if (Flip(work.ID, work.NeighborIDs[2])) MessageBox(0, L"2", 0, 0);				
             }
         }
+		/*
         //----------IZOLINE
         private ArrayList Metka_of_Hlayer(float h)
         {
@@ -577,18 +607,18 @@ array<uint16_t, 2> TriangulationDilane::WalkToDarkOfMind(int nomer, VertexModelL
             for (int i = 0; i < _Triangl.Count; i++)
             {
                 t =Triangles.at(i];
-                z1 = t.node[0].Z;
-                z2 = t.node[1].Z;
-                z3 = t.node[2].Z;
+                z1 = t.Vertices[0].Z;
+                z2 = t.Vertices[1].Z;
+                z3 = t.Vertices[2].Z;
                 double min = Math.Min(Math.Min(z1, z2), z3);
                 double max = Math.Max(Math.Max(z1, z2), z3);
                 if (min < h & h < max)
                 {
                    
                     t.flagC = h;
-                    if ((z1 <= h & h < z2) | (z2 < h & h <= z1)) { onepoint++; izoLine.Add(GetIzoPoint(t.node[1], t.node[0], h)); }
-                    if ((z2 <= h & h < z3) | (z3 < h & h <= z2)) { onepoint++; izoLine.Add(GetIzoPoint(t.node[2], t.node[1], h)); }
-                    if ((z3 <= h & h < z1) | (z1 < h & h <= z3)) { onepoint++; izoLine.Add(GetIzoPoint(t.node[0], t.node[2], h)); }
+                    if ((z1 <= h & h < z2) | (z2 < h & h <= z1)) { onepoint++; izoLine.Add(GetIzoPoint(t.Vertices[1], t.Vertices[0], h)); }
+                    if ((z2 <= h & h < z3) | (z3 < h & h <= z2)) { onepoint++; izoLine.Add(GetIzoPoint(t.Vertices[2], t.Vertices[1], h)); }
+                    if ((z3 <= h & h < z1) | (z1 < h & h <= z3)) { onepoint++; izoLine.Add(GetIzoPoint(t.Vertices[0], t.Vertices[2], h)); }
                    
                     onepoint = 0;
                 }
@@ -626,7 +656,9 @@ array<uint16_t, 2> TriangulationDilane::WalkToDarkOfMind(int nomer, VertexModelL
             return new _point(_x, _y, h);
             
         }
+		*/
         
+		/*
         //--------------------------------DirectX---------------------------
         public void InitializeGraphics()
         {
@@ -658,15 +690,15 @@ array<uint16_t, 2> TriangulationDilane::WalkToDarkOfMind(int nomer, VertexModelL
             for (int i = 0; i < _Triangl.Count; i++)
             {
                 t =Triangles.at(i];
-                x = t.node[0].x / _Width;
-                y = t.node[0].y / _Width;
+                x = t.Vertices[0].x / _Width;
+                y = t.Vertices[0].y / _Width;
                 _color = map.GetPixel((int)(x * 99), (int)(y * 99));
                 z = (_color.R + _color.G + _color.B) / k;
-                t.node[0].Z = z;
+                t.Vertices[0].Z = z;
                 vertex[i * 3].Position = new Vector3((float)x, (float)y, (float)z);
 
-                x = t.node[1].x / _Width;
-                y = t.node[1].y / _Width;
+                x = t.Vertices[1].x / _Width;
+                y = t.Vertices[1].y / _Width;
                 _color = map.GetPixel((int)(x * 99), (int)(y * 99));
                 z = (_color.R + _color.G + _color.B) / k;
                 t.node[1].Z = z;
@@ -787,3 +819,4 @@ array<uint16_t, 2> TriangulationDilane::WalkToDarkOfMind(int nomer, VertexModelL
         
         //------------------------------------------------------------------
     
+	*/
