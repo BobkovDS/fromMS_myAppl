@@ -48,6 +48,6 @@ struct VertexModelLoader {
 struct Triangle
 {
 	std::array<VertexModelLoader, 3> Vertices;
-	std::array<uint16_t, 3> NeighborIDs;
+	std::array<int, 3> NeighborIDs;
 	uint16_t ID;
 };

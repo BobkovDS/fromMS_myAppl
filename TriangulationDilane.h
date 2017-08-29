@@ -20,12 +20,12 @@ public:
 
 private:
 	std::vector<Triangle> Triangles;
-	int _Width = 600;
+	int _Width = 9;
 
 	bool Flip(int f, int s);
 	
-	std::array<uint16_t, 3> WalkToDarkOfMind(int nomer, VertexModelLoader P);
-	std::array<uint16_t, 2>  GetNomers(int f, int s);
+	std::array<int, 3> WalkToDarkOfMind(int nomer, VertexModelLoader P);
+	std::array<int, 2>  GetNomers(int f, int s);
 	uint16_t Mod(uint16_t v);
 	bool TriangulationDilane::_Nvertex(int _index, int v, int N);
 	void TriangulationDilane::DebugFunction();
