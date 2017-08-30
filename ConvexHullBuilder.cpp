@@ -3,40 +3,44 @@
 using namespace std;
 
 
-ConvexHullBuilder::ConvexHullBuilder()
+ConvexHullBuilder::ConvexHullBuilder(std::vector<VertexModelLoader>* inPutDate)
 {
+	inputVertices = inPutDate;
 }
 
 ConvexHullBuilder::~ConvexHullBuilder()
 {
 }
 
-void ConvexHullBuilder::Build_ConvexHull(vector<VertexModelLoader> *inPutDate)
+void ConvexHullBuilder::Build_ConvexHull()
 {
-	SortVector(inPutDate);
+	SortVector(inputVertices);
 
-	_leftPoint = inPutDate->at(0);
-	_rightPoint = inPutDate->at(inPutDate->size() - 1);
+	_leftPoint = inputVertices->at(0);
+	_rightPoint = inputVertices->at(inputVertices->size() - 1);
 
-	vector<VertexModelLoader>::reverse_iterator revVectorIterator;
+	vector<unsigned int>::reverse_iterator revVectorIterator;
 	VertexModelLoader betwPoint;
 	VertexModelLoader a;
 	VertexModelLoader b;
 
-	for (int i = 1; i < inPutDate->size() - 1; i++)
+	for (int i = 1; i < inputVertices->size() - 1; i++)
 	{
 		//prbar.Value = i;
-		betwPoint = inPutDate->at(i);
+		betwPoint = inputVertices->at(i);
 		a = _leftPoint - _rightPoint;
 		b = betwPoint - _rightPoint;
 
 		float det = a^b;
-		if (det < 0) _upperPartition.push_back(betwPoint);
-		else _lowerPartition.push_back(betwPoint);
+		if (det < 0) _upperPartition.push_back(i);
+		else _lowerPartition.push_back(i);
 	}
 
 	//MessageBox.Show("This is partition");
+	_upperPartition.push_back(inputVertices->size() - 1);
 	Build_HullPartition(&_upperPartition, -1);
+
+	_lowerPartition.push_back(inputVertices->size() - 1);
 	Build_HullPartition(&_lowerPartition, 1);
 
 	revVectorIterator = _lowerHull.rbegin(); /// -- check how Iterator works, but here we don't need it
@@ -47,28 +51,26 @@ void ConvexHullBuilder::Build_ConvexHull(vector<VertexModelLoader> *inPutDate)
 	_result_convex_hull = _upperPartition;
 }
 
-void ConvexHullBuilder::Build_HullPartition(vector<VertexModelLoader> *inPutDate, int factor)
+void ConvexHullBuilder::Build_HullPartition(vector<unsigned int> *inPutDate, int factor)
 {
 	// factor: 1 for Upper, -1 for Lower;
-	vector<VertexModelLoader> tmpVector;
+	vector<unsigned int> tmpVector;
 	VertexModelLoader a;
 	VertexModelLoader b;
 
-	tmpVector.push_back(_leftPoint);
-	inPutDate->push_back(_rightPoint);
+	tmpVector.push_back(0);	
 
 	int pos = inPutDate->size();
 	while (pos > 0)
 	{
 		tmpVector.push_back(inPutDate->at(inPutDate->size()- pos));
-
-		
+				
 		while ( tmpVector.size() >= 3)
 		{
 			int tmpVectorSize = tmpVector.size();
 
-			a = tmpVector.at(tmpVectorSize - 3) - tmpVector.at(tmpVectorSize - 1);
-			b = tmpVector.at(tmpVectorSize - 2) - tmpVector.at(tmpVectorSize - 1);
+			a = inputVertices->at(tmpVector.at(tmpVectorSize - 3)) - inputVertices->at(tmpVector.at(tmpVectorSize - 1));
+			b = inputVertices->at(tmpVector.at(tmpVectorSize - 2)) - inputVertices->at(tmpVector.at(tmpVectorSize - 1));
 
 			if ((factor * (a^b)) <= 0)
 			{
@@ -79,7 +81,6 @@ void ConvexHullBuilder::Build_HullPartition(vector<VertexModelLoader> *inPutDate
 			else break;
 		}
 		pos--;
-
 	}
 
 	inPutDate->swap(tmpVector);

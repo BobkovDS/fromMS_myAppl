@@ -1,6 +1,7 @@
+#pragma once
 #include "ModelLoaderClass.h"
-#include "TriangulationDilane.h"
 #include "ConvexHullBuilder.h"
+#include "TriangulationDilane.h"
 
 using namespace std;
 ModelLoaderClass::ModelLoaderClass()
@@ -499,11 +500,11 @@ void ModelLoaderClass::GenerateDelone()
 	tPoint.y = 4;
 	vertices.push_back(tPoint);
 
-	ConvexHullBuilder convexBuilder;
-	TriangulationDilane DeloneCreator;
+	ConvexHullBuilder convexBuilder(&vertices);
+	convexBuilder.Build_ConvexHull();
 
-	convexBuilder.Build_ConvexHull(&vertices);
+	TriangulationDilane DeloneCreator(&vertices);
 	DeloneCreator.CreateTriangulation(&convexBuilder._result_convex_hull);
 	DeloneCreator.DelonePrepare();
-	DeloneCreator.DeloneIt(&vertices);
+	DeloneCreator.DeloneIt();
 }

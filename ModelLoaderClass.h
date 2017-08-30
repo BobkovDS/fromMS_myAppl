@@ -6,6 +6,7 @@
 #include <wrl.h>
 #include "HelperStruct.h"
 
+
 class ModelLoaderClass
 {
 public:

@@ -44,10 +44,13 @@ struct VertexModelLoader {
 	}
 };
 
-
 struct Triangle
 {
-	std::array<VertexModelLoader, 3> Vertices;
+	std::array<unsigned int, 3> Vertices;
 	std::array<int, 3> NeighborIDs;
 	uint16_t ID;
+	static std::vector<VertexModelLoader>* allVertices;
+
+	VertexModelLoader GetVertex(int n) { return allVertices->at(Vertices[n]); }
 };
+

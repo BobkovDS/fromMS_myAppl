@@ -1,8 +1,13 @@
 #include "TriangulationDilane.h"
 using namespace std;
 
-TriangulationDilane::TriangulationDilane()
+
+std::vector<VertexModelLoader>* Triangle::allVertices = nullptr;
+
+TriangulationDilane::TriangulationDilane(vector<VertexModelLoader> *_inPutDate)
 {
+	Triangle::allVertices = _inPutDate;
+	inPutDate = _inPutDate;
 }
 
 TriangulationDilane::~TriangulationDilane()
@@ -68,9 +73,13 @@ TriangulationDilane::~TriangulationDilane()
 
         }
         */
-void TriangulationDilane::CreateTriangulation(vector<VertexModelLoader> *inPutDate)
+void TriangulationDilane::CreateTriangulation(vector<unsigned int> *inPutDate)
 {
+	
 	Triangle newTriangle;
+
+//	newTriangle.SetAdd(inPutDate);
+	//newTriangle.Address = inPutDate;
 
 	newTriangle.Vertices[0] = inPutDate->at(0);
 	newTriangle.Vertices[1] = inPutDate->at(1);
@@ -94,16 +103,15 @@ void TriangulationDilane::CreateTriangulation(vector<VertexModelLoader> *inPutDa
 	}
 	newTriangle.NeighborIDs[2] = newTriangle.ID - 1;
 	Triangles.push_back(newTriangle);
+	//Triangles.at(0).Index++;
 }
 
 void TriangulationDilane::DelonePrepare()
-{
-
+{	
 	for (int i = 0; i < Triangles.size(); i++)
 	{
 		Flip(Triangles.at(i).ID, Triangles.at(i).NeighborIDs[1]);
 	}
-
 }
 
 bool TriangulationDilane::Flip(int F, int S)
@@ -125,10 +133,10 @@ bool TriangulationDilane::Flip(int F, int S)
 		int Pr2 = Mod(protiv[1] + 1); // точка "до" в 2
 		int Sl2 = Mod(protiv[1]);// точка "после" в 2
 
-		VertexModelLoader p1 = triangleA->Vertices[Pr1];
-		VertexModelLoader p2 = triangleA->Vertices[protiv[0]]; //<--|
-		VertexModelLoader p3 = triangleA->Vertices[Sl1];       //   |  противоположные вершины
-		VertexModelLoader p0 = triangleB->Vertices[protiv[1]]; //<--| 
+		VertexModelLoader p1 = triangleA->GetVertex(Pr1);
+		VertexModelLoader p2 = triangleA->GetVertex(protiv[0]); //<--|
+		VertexModelLoader p3 = triangleA->GetVertex(Sl1);       //   |  противоположные вершины
+		VertexModelLoader p0 = triangleB->GetVertex(protiv[1]); //<--| 
 
 		double cosA = (p0.x - p1.x) * (p0.x - p3.x) + (p0.y - p1.y) * (p0.y - p3.y);
 		double cosB = (p2.x - p1.x) * (p2.x - p3.x) + (p2.y - p1.y) * (p2.y - p3.y);
@@ -145,8 +153,8 @@ bool TriangulationDilane::Flip(int F, int S)
 
 		if (Ok)// Выполняется условие, значит надо перестроить
 		{
-			triangleA->Vertices[Sl1] = p0;
-			triangleB->Vertices[Sl2] = p2;
+			triangleA->Vertices[Sl1] = triangleB->Vertices[protiv[1]];
+			triangleB->Vertices[Sl2] = triangleA->Vertices[protiv[0]];
 
 			triangleA->NeighborIDs[protiv[0]] = triangleB->NeighborIDs[Pr2];
 			triangleB->NeighborIDs[protiv[1]] = triangleA->NeighborIDs[Pr1];
@@ -172,11 +180,11 @@ bool TriangulationDilane::Flip(int F, int S)
 			}
 			_result = true;
 
-			// Flip(triangleA.ID, triangleA.NeighborIDs[Sl1]);
+			
 			Flip(triangleA->ID, triangleA->NeighborIDs[protiv[0]]);
 
 			Flip(triangleB->ID, triangleB->NeighborIDs[Sl2]);
-			//Flip(triangleB->ID, triangleB->NeighborIDs[protiv[1]]);
+			
 		}
 
 		return _result;
@@ -186,8 +194,9 @@ bool TriangulationDilane::Flip(int F, int S)
 }
 
 
-void TriangulationDilane::DeloneIt(vector<VertexModelLoader> *inPutDate)
+void TriangulationDilane::DeloneIt()
 {
+	
 	int m = 2, N = 0, R = 6;
 	array<uint16_t, 2> CASH;
 	vector<uint16_t> tCASH;
@@ -199,20 +208,13 @@ void TriangulationDilane::DeloneIt(vector<VertexModelLoader> *inPutDate)
 	int nTr, oldTr;
 	int Row, Column, oldR, oldC;
 
-	VertexModelLoader oldPoint = inPutDate->at(0);
+	
 	oldTr = 0;
 	oldR = 0; oldC = 0;
 	int SoC = m * m * R;
 	while (N < inPutDate->size())
 	{
-		VertexModelLoader point = inPutDate->at(N);
-		/* if (Math.Sqrt((oldPoint.x - point.x) * (oldPoint.x - point.x) + (oldPoint.y - point.y) * (oldPoint.y - point.y)) < _Width / m)
-		 {
-			 nTr = oldTr;
-			 Row = oldR;
-			 Column = oldC;
-		 }
-		 else*/
+		VertexModelLoader point = inPutDate->at(N);	
 		{
 			Row = floor(point.x / _Width * m);
 			Column = floor(point.y / _Width * m);			
@@ -231,13 +233,14 @@ void TriangulationDilane::DeloneIt(vector<VertexModelLoader> *inPutDate)
 			array<int, 3> Nomera = { Reseach[1], NewNomer, NewNomer + 1 };
 			array<int, 2> nnom;
 
-			Triangle AddingT;
+			Triangle AddingT = Triangle();
 			Triangle DividT = Triangles.at(Reseach[1]);			
 
-			//First Added			
+			//First Added		
+			
 			AddingT.ID = NewNomer;
 			AddingT.Vertices[0] = DividT.Vertices[1];
-			AddingT.Vertices[1] = point;//AddingT.SetPoint(1, point);
+			AddingT.Vertices[1] = N;//AddingT.SetPoint(1, point);
 			AddingT.Vertices[2] = DividT.Vertices[0];
 			uint16_t tNewNomer = NewNomer + 1;
 			AddingT.NeighborIDs = { DividT.ID, DividT.NeighborIDs[2],tNewNomer };
@@ -252,7 +255,7 @@ void TriangulationDilane::DeloneIt(vector<VertexModelLoader> *inPutDate)
 			
 			AddingT.ID = NewNomer + 1;
 			AddingT.Vertices[0] = DividT.Vertices[2];
-			AddingT.Vertices[1] = point;
+			AddingT.Vertices[1] = N;
 			AddingT.Vertices[2] = DividT.Vertices[1];
 			AddingT.NeighborIDs = { NewNomer, DividT.NeighborIDs[0], DividT.ID };
 			Triangles.push_back(AddingT);
@@ -265,7 +268,7 @@ void TriangulationDilane::DeloneIt(vector<VertexModelLoader> *inPutDate)
 			}
 
 			// modifed found treugol
-			DividT.Vertices[1] = point;
+			DividT.Vertices[1] = N;
 			DividT.NeighborIDs[0] = NewNomer + 1;
 			DividT.NeighborIDs[2] = NewNomer;
 
@@ -310,7 +313,7 @@ void TriangulationDilane::DeloneIt(vector<VertexModelLoader> *inPutDate)
 			AddingT.ID = NewNomer;
 			AddingT.Vertices[0] = Our.Vertices[Pr];
 			AddingT.Vertices[1] = Our.Vertices[ver];
-			AddingT.Vertices[2] = point;
+			AddingT.Vertices[2] = N;
 
 			//Modify Our treangle
 
@@ -331,7 +334,7 @@ void TriangulationDilane::DeloneIt(vector<VertexModelLoader> *inPutDate)
 					T3.NeighborIDs[nNew[1]] = AddingT.ID;
 				}
 
-				Our.Vertices[ver] = point; // -------- WHY IT HERE ? !!!!!!!!!!!!!!!!!!!!!!!!! 
+				Our.Vertices[ver] = N; // -------- WHY IT HERE ? !!!!!!!!!!!!!!!!!!!!!!!!! 
 				Our.NeighborIDs[Sl] = AddingT.ID;
 								
 				Our = Neigh;
@@ -343,12 +346,12 @@ void TriangulationDilane::DeloneIt(vector<VertexModelLoader> *inPutDate)
 				
 				AddingT.ID = NewNomer + 1;
 				AddingT.Vertices[0] = Our.Vertices[Sl];
-				AddingT.Vertices[1] = point;
+				AddingT.Vertices[1] = N;
 				AddingT.Vertices[2] = Our.Vertices[ver];
 				AddingT.NeighborIDs = { NewNomer, Our.NeighborIDs[Pr], Our.ID, };
 				Triangles.push_back(AddingT);;
 				//Modify Our treangle
-				Our.Vertices[ver] = point;
+				Our.Vertices[ver] = N;
 				Our.NeighborIDs[Pr] = AddingT.ID;
 
 				if (AddingT.NeighborIDs[1] != -1)
@@ -369,7 +372,7 @@ void TriangulationDilane::DeloneIt(vector<VertexModelLoader> *inPutDate)
 					array<int, 2>  nNew = GetNomers(AddingT.ID, T3.ID);
 					T3.NeighborIDs[nNew[1]] = AddingT.ID;
 				}
-				Our.Vertices[ver] = point;
+				Our.Vertices[ver] = N;
 				Our.NeighborIDs[Sl] = AddingT.ID;
 			}
 
@@ -398,6 +401,11 @@ void TriangulationDilane::DeloneIt(vector<VertexModelLoader> *inPutDate)
 	}
 }
 
+void TriangulationDilane::SetPolygonWidth(unsigned int width)
+{
+	_Width = width;
+}
+
 
 array<int, 3> TriangulationDilane::WalkToDarkOfMind(int nomer, VertexModelLoader P)
 {
@@ -412,9 +420,9 @@ array<int, 3> TriangulationDilane::WalkToDarkOfMind(int nomer, VertexModelLoader
 	*/
 	Triangle cTr = Triangles.at(nomer);
 
-	VertexModelLoader p0 = cTr.Vertices[0];
-	VertexModelLoader p1 = cTr.Vertices[1];
-	VertexModelLoader p2 = cTr.Vertices[2];
+	VertexModelLoader p0 = cTr.GetVertex(0);
+	VertexModelLoader p1 = cTr.GetVertex(1);
+	VertexModelLoader p2 = cTr.GetVertex(2);
 	double Epss = 0.000000001;
 
 
@@ -530,22 +538,22 @@ array<int, 2>  TriangulationDilane::GetNomers(int f, int s)
 	VertexModelLoader p1_0, p1_1, p1_2;
 	VertexModelLoader p2_0, p2_1, p2_2;
 
-	p1_0 = First.Vertices[0];
-	p1_1 = First.Vertices[1];
-	p1_2 = First.Vertices[2];
+	p1_0 = First.GetVertex(0);
+	p1_1 = First.GetVertex(1);
+	p1_2 = First.GetVertex(2);
 
-	p2_0 = Second.Vertices[0];
-	p2_1 = Second.Vertices[1];
-	p2_2 = Second.Vertices[2];
+	p2_0 = Second.GetVertex(0);
+	p2_1 = Second.GetVertex(1);
+	p2_2 = Second.GetVertex(2);
 
 	VertexModelLoader p0 = p2_2;
 	int i = 2;
-	while (p0 == p1_0 | p0 == p1_1 | p0 == p1_2) { i--; p0 = Second.Vertices[i]; }
+	while (p0 == p1_0 | p0 == p1_1 | p0 == p1_2) { i--; p0 = Second.GetVertex(i); }
 	result[1] = i;
 
 	p0 = p1_2;
 	i = 2;
-	while (p0 == p2_0 | p0 == p2_1 | p0 == p2_2) { i--; p0 = First.Vertices[i]; }
+	while (p0 == p2_0 | p0 == p2_1 | p0 == p2_2) { i--; p0 = First.GetVertex(i); }
 	result[0] = i;
 
 	//return new int[] {v1,v2};

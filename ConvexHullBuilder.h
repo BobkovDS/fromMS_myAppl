@@ -5,26 +5,25 @@ class ConvexHullBuilder
 {
 	//or Vertex
 public:
-	ConvexHullBuilder();
+	ConvexHullBuilder(std::vector<VertexModelLoader> *inPutDate);
 	~ConvexHullBuilder();
 
-	void Build_ConvexHull(std::vector<VertexModelLoader> *inPutDate);
-	std::vector<VertexModelLoader> _result_convex_hull;
+	void Build_ConvexHull();
+	std::vector<unsigned int> _result_convex_hull;
 
 private:
+	std::vector<VertexModelLoader> *inputVertices;
+
 	VertexModelLoader _leftPoint;
 	VertexModelLoader _rightPoint;
 	//
-	std::vector<VertexModelLoader> _lowerPartition;
-	std::vector<VertexModelLoader> _upperPartition;
-	std::vector<VertexModelLoader> _lowerHull;
-	std::vector<VertexModelLoader> _upperHull;
+	std::vector<unsigned int> _lowerPartition;
+	std::vector<unsigned int> _upperPartition;
+	std::vector<unsigned int> _lowerHull;
 	
-
 	bool Error = true;
-
-	
+		
 	void SortVector(std::vector<VertexModelLoader> *inPutDate);
-	void Build_HullPartition(std::vector<VertexModelLoader> *inPutDate, int factor);
+	void Build_HullPartition(std::vector<unsigned int> *inPutDate, int factor);
 		
 };
