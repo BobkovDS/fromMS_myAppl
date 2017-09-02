@@ -2,6 +2,7 @@
 #include "ModelLoaderClass.h"
 #include "ConvexHullBuilder.h"
 #include "TriangulationDilane.h"
+#include "ctime"
 
 using namespace std;
 ModelLoaderClass::ModelLoaderClass()
@@ -41,11 +42,11 @@ bool ModelLoaderClass::LoadModelFromFile(const std::wstring& filename)
 			else if (firstSymbol == "f")
 			{
 
-				uint16_t tmpIndex = 0;
+				uint32_t tmpIndex = 0;
 				std::string tmpString;
 				std::string delimiter = "//";
 				FaceIndices.clear();
-				std::vector<std::uint16_t> FaceIndicesfromFile;
+				std::vector<std::uint32_t> FaceIndicesfromFile;
 				while (inStr.good())
 				{
 					inStr >> tmpString;
@@ -67,7 +68,7 @@ bool ModelLoaderClass::LoadModelFromFile(const std::wstring& filename)
 						int dummy = 1;
 					}
 					//TrangulationOfPolygon(&tmpIndices);
-					vector<std::uint16_t> outputPolygon;
+					vector<std::uint32_t> outputPolygon;
 					if (FindProjectPlane(vertices.at(FaceIndices.at(0)), vertices.at(FaceIndices.at(1)), vertices.at(FaceIndices.at(2)), vertices.at(FaceIndices.at(3)))) // !#? should be modification to use Indices
 						TrangulationOfPolygon(&LocalFaceIndices);
 
@@ -122,15 +123,15 @@ int ModelLoaderClass::GetVectorSizeI()
 	return indices.size();
 }
 
-uint16_t ModelLoaderClass::GetNextI()
+uint32_t ModelLoaderClass::GetNextI()
 {
 	return indices.at(m_currIndexIndex++);
 }
 
-void ModelLoaderClass::TrangulationOfPolygon(vector<std::uint16_t> *PolygonIndex)
+void ModelLoaderClass::TrangulationOfPolygon(vector<std::uint32_t> *PolygonIndex)
 {
 
-	vector<std::uint16_t> tmpVector;
+	vector<std::uint32_t> tmpVector;
 
 	CreateMinPolygon(PolygonIndex); //minimaze of polygon
 
@@ -269,9 +270,9 @@ bool ModelLoaderClass::FindProjectPlane(VertexModelLoader p1, VertexModelLoader 
 	return false;
 }
 
-bool ModelLoaderClass::CreateMinPolygon(vector<std::uint16_t> *inputPolygon)
+bool ModelLoaderClass::CreateMinPolygon(vector<std::uint32_t> *inputPolygon)
 {
-	vector<std::uint16_t> outputPolygon;
+	vector<std::uint32_t> outputPolygon;
 	
 	int m = 0;	
 	//outputPolygon.push_back(inputPolygon->at(0));
@@ -334,7 +335,7 @@ bool ModelLoaderClass::CreateMinPolygon(vector<std::uint16_t> *inputPolygon)
 	return false;
 }
 
-int ModelLoaderClass::CheckConvexPolynom(vector<std::uint16_t> *Polygon)
+int ModelLoaderClass::CheckConvexPolynom(vector<std::uint32_t> *Polygon)
 {
 	int n = Polygon->size();
 		
@@ -354,10 +355,10 @@ int ModelLoaderClass::CheckConvexPolynom(vector<std::uint16_t> *Polygon)
 	return 1; //Convex
 }
 
-void ModelLoaderClass::LCShift(std::vector<std::uint16_t> *inputPolygon)
+void ModelLoaderClass::LCShift(std::vector<std::uint32_t> *inputPolygon)
 {
 	int n = inputPolygon->size();
-	uint16_t tmpIndex = inputPolygon->at(0);
+	uint32_t tmpIndex = inputPolygon->at(0);
 
 	for (int i =0; i <n-1; i++)
 		inputPolygon->at(i) = inputPolygon->at(i +1);
@@ -365,10 +366,10 @@ void ModelLoaderClass::LCShift(std::vector<std::uint16_t> *inputPolygon)
 	inputPolygon->at(n-1) = tmpIndex;
 }
 
-void ModelLoaderClass::RCShift(std::vector<std::uint16_t> *inputPolygon)
+void ModelLoaderClass::RCShift(std::vector<std::uint32_t> *inputPolygon)
 {
 	int n = inputPolygon->size();
-	uint16_t tmpIndex = inputPolygon->at(n - 1);
+	uint32_t tmpIndex = inputPolygon->at(n - 1);
 
 	for (int i = n - 1; i > 0; i--)
 		inputPolygon->at(i) = inputPolygon->at(i - 1);
@@ -376,7 +377,7 @@ void ModelLoaderClass::RCShift(std::vector<std::uint16_t> *inputPolygon)
 	inputPolygon->at(0) = tmpIndex;
 }
 
-void ModelLoaderClass::NonConvexVertex(uint16_t pNI, uint16_t pI1, uint16_t pI2)
+void ModelLoaderClass::NonConvexVertex(uint32_t pNI, uint32_t pI1, uint32_t pI2)
 {
 	VertexModelLoader a, b;
 	a = projection.at(pNI) - projection.at(pI1);
@@ -384,7 +385,7 @@ void ModelLoaderClass::NonConvexVertex(uint16_t pNI, uint16_t pI1, uint16_t pI2)
 	float z = a.x*b.y - a.y*b.x;
 }
 
-int ModelLoaderClass::DirTest(std::vector<std::uint16_t> *inputPolygon)
+int ModelLoaderClass::DirTest(std::vector<std::uint32_t> *inputPolygon)
 {
 	int n = inputPolygon->size();
 	float commonS = 0;
@@ -399,7 +400,7 @@ int ModelLoaderClass::DirTest(std::vector<std::uint16_t> *inputPolygon)
 		
 }
 
-float ModelLoaderClass::Nf2(uint16_t p1I, uint16_t p2I, uint16_t pnI)
+float ModelLoaderClass::Nf2(uint32_t p1I, uint32_t p2I, uint32_t pnI)
 {
 	VertexModelLoader a, b;
 	a = projection.at(pnI) - projection.at(p1I);
@@ -409,7 +410,7 @@ float ModelLoaderClass::Nf2(uint16_t p1I, uint16_t p2I, uint16_t pnI)
 	return z;
 }
 
-int ModelLoaderClass::CrossSegm(uint16_t p1I, uint16_t p2I, uint16_t p3I, uint16_t p4I, std::vector<std::uint16_t> *inputPolygon)
+int ModelLoaderClass::CrossSegm(uint32_t p1I, uint32_t p2I, uint32_t p3I, uint32_t p4I, std::vector<std::uint32_t> *inputPolygon)
 {
 	/*
 		return:
@@ -448,10 +449,10 @@ int ModelLoaderClass::CrossSegm(uint16_t p1I, uint16_t p2I, uint16_t p3I, uint16
 	//return ((r.x >= 0) && (r.x <= 1)) && ((r.y >= 0) && (r.y <= 1));
 }
 
-void ModelLoaderClass::DividePolygon(uint16_t devidePoint, std::vector<std::uint16_t> *inputPolygon)
+void ModelLoaderClass::DividePolygon(uint32_t devidePoint, std::vector<std::uint32_t> *inputPolygon)
 {
-	vector<std::uint16_t> Polygon1;
-	vector<std::uint16_t> Polygon2;
+	vector<std::uint32_t> Polygon1;
+	vector<std::uint32_t> Polygon2;
 
 	for (int i = 0; i <= devidePoint; i++)
 		Polygon1.push_back(inputPolygon->at(i));
@@ -471,40 +472,33 @@ void ModelLoaderClass::GenerateDelone()
 {	
 	vertices.clear();
 	VertexModelLoader tPoint;
+	
+	//LoadModelFromFile(L"trianglD.obj");
+	
+	srand(static_cast<unsigned>(time(0)));
 
-	tPoint.x = 2;
-	tPoint.y = 2;
-	vertices.push_back(tPoint);
-
-	tPoint.x = 4;
-	tPoint.y = 3;
-	vertices.push_back(tPoint);
-
-	tPoint.x = 5;
-	tPoint.y = 5;
-	vertices.push_back(tPoint);
-
-	tPoint.x = 2;
-	tPoint.y = 4;
-	vertices.push_back(tPoint);
-
-	tPoint.x = 3;
-	tPoint.y = 5;
-	vertices.push_back(tPoint);
-
-	tPoint.x = 6;
-	tPoint.y = 1;
-	vertices.push_back(tPoint);
-
-	tPoint.x = 8;
-	tPoint.y = 4;
-	vertices.push_back(tPoint);
+	int N = 100;
+	float Lo = -6;
+	float Hi = 6;
+	
+	for (int i=0; i < N; i++)
+	{
+		tPoint.x = Lo + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (Hi - Lo)));
+		tPoint.y = Lo + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (Hi - Lo)));
+		tPoint.z = 0;
+		tPoint.x = floor(tPoint.x * 100 + 0.5) / 100;
+		tPoint.y = floor(tPoint.y * 100 + 0.5) / 100;
+		vertices.push_back(tPoint);
+	}
+	
+	
+	
 
 	ConvexHullBuilder convexBuilder(&vertices);
 	convexBuilder.Build_ConvexHull();
 
-	TriangulationDilane DeloneCreator(&vertices);
+	TriangulationDilane DeloneCreator(Lo,Lo, int (Hi - Lo), int(Hi - Lo), &vertices);
 	DeloneCreator.CreateTriangulation(&convexBuilder._result_convex_hull);
 	DeloneCreator.DelonePrepare();
-	DeloneCreator.DeloneIt();
+	DeloneCreator.DeloneIt(&indices);
 }

@@ -2,7 +2,7 @@
 #include "Cmn3DApp.h"
 #include <WindowsX.h>
 
-using namespace Microsoft::WRL;
+//using namespace Microsoft::WRL;
 
 Cmn3DApp::Cmn3DApp(HINSTANCE hInstance):m_hInstance(hInstance), m_width(600),m_height(600), m_BackBufferFormat(DXGI_FORMAT_R8G8B8A8_UNORM), m_DepthStencilFormat(DXGI_FORMAT_D24_UNORM_S8_UINT)
 {

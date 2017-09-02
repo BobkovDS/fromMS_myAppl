@@ -265,7 +265,7 @@ void myAppClass::BuildBoxGeometry()
 	// Load model from file 
 	ModelLoaderClass ModelLoader;
 	ModelLoader.GenerateDelone();
-	ModelLoader.LoadModelFromFile(L"PlainModel.obj");
+	//ModelLoader.LoadModelFromFile(L"PlainModel.obj");
 //	ModelLoader.LoadModelFromFile(L"m4.obj");
 
 	int VertexCount = ModelLoader.GetVectorSizeV();
@@ -275,6 +275,7 @@ void myAppClass::BuildBoxGeometry()
 	for (int i = 0; i < VertexCount; i++)
 	{
 		VertexModelLoader tmpVert = ModelLoader.GetNextV();
+		tmpVert.z = 1;// / VertexCount;
 		vertices.push_back(Vertex({ XMFLOAT3(tmpVert.x, tmpVert.y, tmpVert.z), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) }));
 	}
 	

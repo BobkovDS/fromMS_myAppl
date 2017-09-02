@@ -1,13 +1,19 @@
 #include "TriangulationDilane.h"
+#include <fstream>
+#include "stdafx.h"
 using namespace std;
 
 
 std::vector<VertexModelLoader>* Triangle::allVertices = nullptr;
 
-TriangulationDilane::TriangulationDilane(vector<VertexModelLoader> *_inPutDate)
+TriangulationDilane::TriangulationDilane(float leftValueOfRangeX, float leftValueOfRangeY, int widthX, int widthY, vector<VertexModelLoader> *_inPutDate)
 {
 	Triangle::allVertices = _inPutDate;
 	inPutDate = _inPutDate;
+	LoX = leftValueOfRangeX;
+	LoY = leftValueOfRangeY;
+	_WidthX = widthX + 1;
+	_WidthY = widthY + 1;
 }
 
 TriangulationDilane::~TriangulationDilane()
@@ -116,6 +122,8 @@ void TriangulationDilane::DelonePrepare()
 
 bool TriangulationDilane::Flip(int F, int S)
 {
+	if (setGlobal) ExportToFile(globalN++);
+
 	if ((F != S) & (S != -1))
 	{
 		Triangle* triangleA;
@@ -145,9 +153,9 @@ bool TriangulationDilane::Flip(int F, int S)
 		else
 		{
 			double Sig =
-				((p0.x - p1.x) * (p0.y - p3.y) - (p0.x - p3.x) * (p0.y - p1.y)) * cosB -
+				((p0.x - p1.x) * (p0.y - p3.y) - (p0.x - p3.x) * (p0.y - p1.y)) * cosB +
 				cosA * ((p2.x - p1.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p2.y - p1.y));
-			if (Sig <= 0) Ok = true; else Ok = false;
+			if (Sig < 0) Ok = true; else Ok = false;
 		}
 
 
@@ -193,8 +201,26 @@ bool TriangulationDilane::Flip(int F, int S)
 
 }
 
+void TriangulationDilane::ExportToFile(int N)
+{
+	
+	std::string FileName = "outputFile" + std::to_string(N);
+	std::ofstream outFile(FileName);
 
-void TriangulationDilane::DeloneIt()
+	std::string tmpStr;
+	int commCount = 1;
+	for (int i = 0; i < Triangles.size(); i++)
+	{
+		tmpStr = "f " + std::to_string(Triangles.at(i).Vertices[0]+1) + "//" + std::to_string(commCount) + " "
+		+ std::to_string(Triangles.at(i).Vertices[1]+1) + "//" + std::to_string(commCount+1) + " "
+		+ std::to_string(Triangles.at(i).Vertices[2]+1) + "//" + std::to_string(commCount+2) +"\r\n";
+		outFile.write(tmpStr.c_str(), tmpStr.size());
+		commCount += 3;
+	}
+	
+	outFile.close();
+}
+void TriangulationDilane::DeloneIt(vector<uint32_t> *outputIndices)
 {
 	
 	int m = 2, N = 0, R = 6;
@@ -214,13 +240,16 @@ void TriangulationDilane::DeloneIt()
 	int SoC = m * m * R;
 	while (N < inPutDate->size())
 	{
+	
 		VertexModelLoader point = inPutDate->at(N);	
 		{
-			Row = floor(point.x / _Width * m);
-			Column = floor(point.y / _Width * m);			
+			
+			Row = floor((point.x + abs(LoX)) / _WidthX * m);
+			Column = floor((point.y + abs(LoY)) / _WidthY * m);
 			//nTr = CASH[Row,Column];
 			nTr = tCASH.at(Row*m + Column);
 		}
+	
 		array<int,3> Reseach = { 1, nTr,0 };
 		while (Reseach[0] == 1) { Reseach = WalkToDarkOfMind(Reseach[1], point); }
 		switch (Reseach[0])
@@ -281,8 +310,16 @@ void TriangulationDilane::DeloneIt()
 				Flip(work.ID, work.NeighborIDs[1]);
 				// ok |= Flip(work.ID, work.NeighborIDs[2]);
 			}*/
+
+			int Stop = 0;
+			if (N == 14)
+			{
+				Stop = 1;				
+			}
 			Triangle work = Triangles.at(Reseach[1]);
 			Flip(work.ID, work.NeighborIDs[1]);
+
+			if (Stop == 1) setGlobal = true; else setGlobal = false;
 
 			work = Triangles.at(NewNomer);
 			Flip(work.ID, work.NeighborIDs[1]);
@@ -306,6 +343,7 @@ void TriangulationDilane::DeloneIt()
 			int Pr = Mod(ver + 1);
 
 			Triangle Our = Triangles.at(Reseach[2]);
+			Triangle tmpOur = Our; // так как пока с указателями на Vector не разобрался, то вводим доп переенную которая в зависимости от ветвления будет указывать для последних flip текущий расщепляемый треугольник
 			Triangle AddingT;
 			uint16_t NewNomer = Triangles.size();
 			
@@ -330,14 +368,14 @@ void TriangulationDilane::DeloneIt()
 				if (AddingT.NeighborIDs[2] != -1)
 				{
 					Triangle T3 =Triangles.at(AddingT.NeighborIDs[2]);
-					array<int, 2> nNew = GetNomers(AddingT.ID, T3.ID);
-					T3.NeighborIDs[nNew[1]] = AddingT.ID;
+					array<int, 2> nNew = GetNomers(AddingT.ID, T3.ID);					
+					Triangles.at(AddingT.NeighborIDs[2]).NeighborIDs[nNew[1]] = AddingT.ID;
 				}
 
-				Our.Vertices[ver] = N; // -------- WHY IT HERE ? !!!!!!!!!!!!!!!!!!!!!!!!! 
-				Our.NeighborIDs[Sl] = AddingT.ID;
+				Triangles.at(Reseach[2]).Vertices[ver] = N; // -------- WHY IT HERE ? !!!!!!!!!!!!!!!!!!!!!!!!! 
+				Triangles.at(Reseach[2]).NeighborIDs[Sl] = AddingT.ID;
 								
-				Our = Neigh;
+				tmpOur = Neigh;
 				ver = Mod(nnom[1] + 1);
 				Sl = nnom[1];
 				Pr = Mod(ver + 1);
@@ -345,43 +383,44 @@ void TriangulationDilane::DeloneIt()
 				////Adding Second new triangl
 				
 				AddingT.ID = NewNomer + 1;
-				AddingT.Vertices[0] = Our.Vertices[Sl];
+				AddingT.Vertices[0] = tmpOur.Vertices[Sl];
 				AddingT.Vertices[1] = N;
-				AddingT.Vertices[2] = Our.Vertices[ver];
-				AddingT.NeighborIDs = { NewNomer, Our.NeighborIDs[Pr], Our.ID, };
+				AddingT.Vertices[2] = tmpOur.Vertices[ver];
+				AddingT.NeighborIDs = { NewNomer, tmpOur.NeighborIDs[Pr], tmpOur.ID, };
 				Triangles.push_back(AddingT);;
 				//Modify Our treangle
-				Our.Vertices[ver] = N;
-				Our.NeighborIDs[Pr] = AddingT.ID;
+				tmpOur.Vertices[ver] = N;
+				tmpOur.NeighborIDs[Pr] = AddingT.ID;
+				Triangles.at(tmpOur.ID) = tmpOur;
 
 				if (AddingT.NeighborIDs[1] != -1)
 				{
 					Triangle T3 =Triangles.at(AddingT.NeighborIDs[1]);
 					array<int, 2> nNew = GetNomers(AddingT.ID, T3.ID);
-					T3.NeighborIDs[nNew[1]] = AddingT.ID;
+					Triangles.at(AddingT.NeighborIDs[1]).NeighborIDs[nNew[1]] = AddingT.ID;
 				}
 			}
 			else
 			{
 
-//				AddingT.NeighborIDs = new int[] { -1, Our.ID, Our.NeighborIDs[Sl] };           ---Coment just to BUILD
+				AddingT.NeighborIDs = { -1, Our.ID, Our.NeighborIDs[Sl] };   
 				Triangles.push_back(AddingT);;
 				if (AddingT.NeighborIDs[2] != -1)
 				{
 					Triangle T3 =Triangles.at(AddingT.NeighborIDs[2]);
 					array<int, 2>  nNew = GetNomers(AddingT.ID, T3.ID);
-					T3.NeighborIDs[nNew[1]] = AddingT.ID;
+					Triangles.at(AddingT.NeighborIDs[2]).NeighborIDs[nNew[1]] = AddingT.ID;
 				}
-				Our.Vertices[ver] = N;
-				Our.NeighborIDs[Sl] = AddingT.ID;
+				Triangles.at(Reseach[2]).Vertices[ver] = N;
+				Triangles.at(Reseach[2]).NeighborIDs[Sl] = AddingT.ID;
 			}
 
 			//Flip(AddingT.ID, AddingT.NeighborIDs[0]);
 			Flip(AddingT.ID, AddingT.NeighborIDs[1]);
 			Flip(AddingT.ID, AddingT.NeighborIDs[2]);
-			Flip(Our.ID, Our.NeighborIDs[0]);
-			Flip(Our.ID, Our.NeighborIDs[1]);
-			Flip(Our.ID, Our.NeighborIDs[2]);
+			Flip(tmpOur.ID, tmpOur.NeighborIDs[0]);
+			Flip(tmpOur.ID, tmpOur.NeighborIDs[1]);
+			Flip(tmpOur.ID, tmpOur.NeighborIDs[2]);
 
 			break;
 		}
@@ -391,21 +430,26 @@ void TriangulationDilane::DeloneIt()
 		 oldC = Column;
 		 oldR = Row;*/
 		 // Point is added
+		ExportToFile(N);
 		N++;
 		if (N == SoC)
 		{			
-			tCASH = CreateDinamicCAHS(tCASH, m);
 			m *= 2;
+			tCASH = CreateDinamicCAHS(tCASH, m);			
 			SoC = m * m * R;
 		}
 	}
-}
+	
+	// Here triangulation Delone is ready. Build Indices set
 
-void TriangulationDilane::SetPolygonWidth(unsigned int width)
-{
-	_Width = width;
-}
+	for (int i = 0; i < Triangles.size(); i++)
+	{
+		outputIndices->push_back(Triangles.at(i).Vertices[0]);
+		outputIndices->push_back(Triangles.at(i).Vertices[1]);
+		outputIndices->push_back(Triangles.at(i).Vertices[2]);
+	}
 
+}
 
 array<int, 3> TriangulationDilane::WalkToDarkOfMind(int nomer, VertexModelLoader P)
 {

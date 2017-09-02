@@ -9,15 +9,19 @@
 class TriangulationDilane {
 
 public:
-	TriangulationDilane(std::vector<VertexModelLoader> *inputVertices);
+	TriangulationDilane(float leftValueOfRangeX, float leftValueOfRangeY, int widthX, int widthY, std::vector<VertexModelLoader> *inputVertices);
 	~TriangulationDilane();
 	void CreateTriangulation(std::vector<unsigned int> *inputIndecis);
 	void DelonePrepare();
-	void DeloneIt();
-	void SetPolygonWidth(unsigned int width);
+	void DeloneIt(std::vector<uint32_t> *outputIndices);	
 
 private:
-	unsigned int _Width = 9;
+	unsigned int _WidthX;
+	unsigned int _WidthY;
+	float LoX; // Left value of Range for X
+	float LoY; // Left value of Range for Y
+	int globalN = 100;// for debug
+	bool setGlobal = false; //for debug
 	std::vector<VertexModelLoader> *inPutDate;
 	std::vector<uint16_t> TriangulationDilane::CreateDinamicCAHS(std::vector<uint16_t> oldCASH, int oldM);
 		
@@ -31,7 +35,7 @@ private:
 	bool Flip(int f, int s);
 	std::array<int, 3> WalkToDarkOfMind(int nomer, VertexModelLoader P);
 	std::array<int, 2>  GetNomers(int f, int s);
-	
+	void ExportToFile(int N);
 	// Methods and structures to build lisf of triangles which are made from input list of points
 	//std::vector<Triangle> Triangles;
 	//bool Flip(int f, int s);

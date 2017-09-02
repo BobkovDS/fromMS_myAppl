@@ -2,11 +2,18 @@
 #include <vector>
 #include <array>
 
+#define accuracy  0.0001f
+
 struct VertexModelLoader {
-	float x, y, z;
+	float x, y, z;	
 
 	bool operator != (const VertexModelLoader &point) const {
-		return (this->x != point.x || this->y != point.y || this->z != point.z);
+		//return (this->x != point.x || this->y != point.y || this->z != point.z);
+		float dx = abs(this->x - point.x);
+		float dy = abs(this->y - point.y);
+		float dz = abs(this->z - point.z);
+
+		return (dx>accuracy || dy>accuracy || dz>accuracy);
 	}
 
 	bool operator == (const VertexModelLoader &point) const {
@@ -51,6 +58,7 @@ struct Triangle
 	uint16_t ID;
 	static std::vector<VertexModelLoader>* allVertices;
 
+	Triangle() { NeighborIDs = { -1,-1,-1 }; };
 	VertexModelLoader GetVertex(int n) { return allVertices->at(Vertices[n]); }
 };
 
