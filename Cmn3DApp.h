@@ -38,6 +38,11 @@ protected: //Child class also can use it
 	const static UINT m_BufferCount = 2;
 	bool ModeFlag = false;
 	int Mode = 0;
+	bool renderNewTrianles = false;
+	bool renderPrevTiangles = false;
+	bool newFliplevel = false;
+	bool prevFlipLevel = false;
+
 	int FaceCountToDraw = 1;
 	bool prevModeFlag = false;
 	bool Pause = false;
@@ -45,6 +50,10 @@ protected: //Child class also can use it
 	bool ResetPSO = false;
 	UINT m_rtvDescriptorSize = 0;
 	float AspectRatio = 1.0f;
+	int N = 0;
+	int FlipLevel;
+	int m_width = 100;
+	int m_height;
 
 	DXGI_FORMAT m_BackBufferFormat;
 	DXGI_FORMAT m_DepthStencilFormat;
@@ -81,8 +90,7 @@ private: //Only for this class
 	HWND m_hMainWind;
 	HANDLE m_fenceEvent;
 
-	int m_width = 100;
-	int m_height;
+	
 	
 
 	UINT64 m_fenceValue;

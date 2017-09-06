@@ -14,6 +14,7 @@ TriangulationDilane::TriangulationDilane(float leftValueOfRangeX, float leftValu
 	LoY = leftValueOfRangeY;
 	_WidthX = widthX + 1;
 	_WidthY = widthY + 1;
+	ExportVerticesToFile();
 }
 
 TriangulationDilane::~TriangulationDilane()
@@ -114,6 +115,7 @@ void TriangulationDilane::CreateTriangulation(vector<unsigned int> *inPutDate)
 
 void TriangulationDilane::DelonePrepare()
 {	
+	
 	for (int i = 0; i < Triangles.size(); i++)
 	{
 		Flip(Triangles.at(i).ID, Triangles.at(i).NeighborIDs[1]);
@@ -122,7 +124,19 @@ void TriangulationDilane::DelonePrepare()
 
 bool TriangulationDilane::Flip(int F, int S)
 {
-	if (setGlobal) ExportToFile(globalN++);
+	if (reqFlipLevel != -1) // reqFlipLevel == -1 if we do not need use FlipLevel
+	{
+		if (currentFlipLevel >= reqFlipLevel) return 0;
+		currentFlipLevel++;
+	}
+	
+	
+
+	//if (setGlobal) ExportToFile(globalN++);
+	if ((F == 16) && (S == 500))
+	{
+		int Stop = 1;
+	}
 
 	if ((F != S) & (S != -1))
 	{
@@ -148,14 +162,17 @@ bool TriangulationDilane::Flip(int F, int S)
 
 		double cosA = (p0.x - p1.x) * (p0.x - p3.x) + (p0.y - p1.y) * (p0.y - p3.y);
 		double cosB = (p2.x - p1.x) * (p2.x - p3.x) + (p2.y - p1.y) * (p2.y - p3.y);
-		if (cosA < 0 & cosB < 0) Ok = true;
-		else if (cosA >= 0 & cosB >= 0) Ok = false;
+		if ((cosA < 0) && (cosB < 0)) Ok = true;
+		else if ((cosA >= 0) && (cosB >= 0)) Ok = false;
 		else
 		{
-			double Sig =
-				((p0.x - p1.x) * (p0.y - p3.y) - (p0.x - p3.x) * (p0.y - p1.y)) * cosB +
-				cosA * ((p2.x - p1.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p2.y - p1.y));
-			if (Sig < 0) Ok = true; else Ok = false;
+			double sinA = (p0.x - p1.x) * (p0.y - p3.y) - (p0.x - p3.x) * (p0.y - p1.y);
+			double sinB = (p2.x - p1.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p2.y - p1.y);
+
+			sinA = abs(sinA); // так как значение угла зависит от обхода треугольника
+			sinB = abs(sinB);
+
+			double Sig = sinA* cosB + cosA * sinB;
 		}
 
 
@@ -204,7 +221,9 @@ bool TriangulationDilane::Flip(int F, int S)
 void TriangulationDilane::ExportToFile(int N)
 {
 	
-	std::string FileName = "outputFile" + std::to_string(N);
+	return;
+
+	std::string FileName = "E:\\tmp\\output\\outputFile" + std::to_string(N);
 	std::ofstream outFile(FileName);
 
 	std::string tmpStr;
@@ -220,9 +239,27 @@ void TriangulationDilane::ExportToFile(int N)
 	
 	outFile.close();
 }
-void TriangulationDilane::DeloneIt(vector<uint32_t> *outputIndices)
+void TriangulationDilane::ExportVerticesToFile()
 {
-	
+
+	std::string FileName = "E:\\tmp\\output\\1VerticesFile";
+	std::ofstream outFile(FileName);
+
+	std::string tmpStr;	
+	for (int i = 0; i < inPutDate->size(); i++)
+	{
+		tmpStr = "v " + std::to_string(inPutDate->at(i).x) +" "
+			+ std::to_string(inPutDate->at(i).y) + " "
+			+ std::to_string(0) + "\r\n";
+		outFile.write(tmpStr.c_str(), tmpStr.size());
+		
+	}
+
+	outFile.close();
+}
+void TriangulationDilane::DeloneIt(vector<uint32_t> *outputIndices, int iN, int FlipLevel)
+{	
+
 	int m = 2, N = 0, R = 6;
 	array<uint16_t, 2> CASH;
 	vector<uint16_t> tCASH;
@@ -238,16 +275,32 @@ void TriangulationDilane::DeloneIt(vector<uint32_t> *outputIndices)
 	oldTr = 0;
 	oldR = 0; oldC = 0;
 	int SoC = m * m * R;
-	while (N < inPutDate->size())
+	while ((N < inPutDate->size()) && (N<= iN))
 	{
-	
+		//all previous N do without FlipLevel
+		if (N != iN)
+		{
+			reqFlipLevel = -1;
+			
+		}
+		else {
+			reqFlipLevel = FlipLevel;
+			currentFlipLevel = 0;
+		}
+
 		VertexModelLoader point = inPutDate->at(N);	
 		{
 			
 			Row = floor((point.x + abs(LoX)) / _WidthX * m);
 			Column = floor((point.y + abs(LoY)) / _WidthY * m);
 			//nTr = CASH[Row,Column];
-			nTr = tCASH.at(Row*m + Column);
+
+			if ((Row*m + Column) >= tCASH.size())
+			{
+				nTr = tCASH.at(tCASH.size() - 1);
+			}
+			else
+				nTr = tCASH.at(Row*m + Column);
 		}
 	
 		array<int,3> Reseach = { 1, nTr,0 };
@@ -312,10 +365,10 @@ void TriangulationDilane::DeloneIt(vector<uint32_t> *outputIndices)
 			}*/
 
 			int Stop = 0;
-			if (N == 14)
+			if (N == 15)
 			{
 				Stop = 1;				
-			}
+			}	
 			Triangle work = Triangles.at(Reseach[1]);
 			Flip(work.ID, work.NeighborIDs[1]);
 

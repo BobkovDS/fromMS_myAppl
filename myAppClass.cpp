@@ -3,17 +3,6 @@
 
 using namespace DirectX;
 
-struct ObjectContants
-{
-	XMFLOAT4X4 wordViewProj = MathHelper::Identity4x4();
-};
-
-struct Vertex
-{
-	XMFLOAT3 Pos;
-	XMFLOAT4 Color;
-};
-
 
 myAppClass::myAppClass(HINSTANCE hInstance):Cmn3DApp(hInstance)
 {
@@ -46,7 +35,9 @@ void myAppClass::Initialize()
 	BuildConstantBuffer();
 	BuildRootSignature();
 	BuildShadersAndInputLayout();
-	BuildBoxGeometry();
+	BuildGeometry();	
+	BuildRenderItems();
+	BuildFrameResourcse();
 	BuildPSO();
 
 	ThrowIfFailed(m_CmdList->Close());
@@ -54,6 +45,14 @@ void myAppClass::Initialize()
 	m_CmdQueue->ExecuteCommandLists(1, cmdsLists);
 
 	FlushCommandQueue();	
+}
+
+void myAppClass::BuildFrameResourcse()
+{
+	for (int i = 0; i < gNumFrameResourcesCount; i++)
+	{
+		m_FrameResources.push_back(std::make_unique<FrameResource>(m_device.Get(), 1, 1, 0, VerticesCount, VerticesCount * 3));		
+	}
 }
 
 void myAppClass::MoveObj(int Sig)
@@ -66,31 +65,34 @@ void myAppClass::Draw()
 {
 	if (ResetPSO)
 	{
-		BuildPSO();		
+		//BuildPSO();		
 	}
 	
-	ThrowIfFailed(m_CmdAllocator->Reset());
-	ThrowIfFailed(m_CmdList->Reset(m_CmdAllocator.Get(), m_pso.Get()));
+	auto cmdListAllocator = m_CurrentFrameResource->cmdListAllocator;
+
+	ThrowIfFailed(cmdListAllocator->Reset());
+	ThrowIfFailed(m_CmdList->Reset(cmdListAllocator.Get(), m_pso.Get()));
 
 	m_CmdList->RSSetScissorRects(1, &m_ScissorRect);
 	m_CmdList->RSSetViewports(1, &m_ScreenViewport);
 
 	m_CmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_SwapChainBuffers[m_swapChain->GetCurrentBackBufferIndex()].Get(),
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+	
 	FLOAT mycolor[4] = { 0.5f, 0.5f, 0.5f, 0.1f };
 	m_CmdList->ClearRenderTargetView(CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_swapChain->GetCurrentBackBufferIndex(), m_rtvDescriptorSize), mycolor,0,nullptr);
 	m_CmdList->ClearDepthStencilView(dsvHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 	m_CmdList->OMSetRenderTargets(1, &CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_swapChain->GetCurrentBackBufferIndex(), m_rtvDescriptorSize), true, &dsvHeap->GetCPUDescriptorHandleForHeapStart());
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { m_cbvHeap.Get() };
-	m_CmdList->SetDescriptorHeaps(1, descriptorHeaps);
+	//ID3D12DescriptorHeap* descriptorHeaps[] = { m_cbvHeap.Get() };
+	//m_CmdList->SetDescriptorHeaps(1, descriptorHeaps);
 
 	m_CmdList->SetGraphicsRootSignature(m_RootSignature.Get());
 
-	m_CmdList->IASetVertexBuffers(0, 1, &m_box->vertexBufferView());
 	
-
+	
+	/*
 	if (Mode == FaceMode)
 	{
 		m_CmdList->IASetIndexBuffer(&m_box->indexBufferView());
@@ -101,8 +103,8 @@ void myAppClass::Draw()
 	else if (Mode == PointMode)
 		m_CmdList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 
-	//m_CmdList->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_LINELIST);
-	//m_CmdList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);		
+	// --------- m_CmdList->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_LINELIST);
+	// --------- m_CmdList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);		
 
 	m_CmdList->SetGraphicsRootDescriptorTable(0, m_cbvHeap->GetGPUDescriptorHandleForHeapStart());
 
@@ -112,10 +114,14 @@ void myAppClass::Draw()
 		m_CmdList->DrawIndexedInstanced(FaceCountToDraw, 1, 0, 0, 0);
 	else
 		m_CmdList->DrawInstanced(m_box->box.VertextCount, 1, 0, 0);
-	
+	*/
 	// Draw one more time
-	m_CmdList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-	m_CmdList->DrawInstanced(m_box->box.VertextCount, 1, 0, 0);
+
+	auto passCB = m_CurrentFrameResource->passCB->Resource();
+
+	m_CmdList->SetGraphicsRootConstantBufferView(1, passCB->GetGPUVirtualAddress());
+	
+	DrawRenderItems(m_CmdList.Get(), &m_AllRenderItems);
 
 	m_CmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_SwapChainBuffers[m_swapChain->GetCurrentBackBufferIndex()].Get(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
@@ -129,38 +135,45 @@ void myAppClass::Draw()
 	FlushCommandQueue();
 }
 
+void myAppClass::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::vector<RenderItem>* rItems)
+{
+	UINT objCBByteSize = CalcConstantBufferByteSize(sizeof(ObjectContants));
+	
+	auto objectCB = m_CurrentFrameResource->perObjectCB->Resource();
+	
+	for (size_t i = 0; i < rItems->size(); i++)
+	{
+		RenderItem ri = rItems->at(i);
+
+		cmdList->IASetVertexBuffers(0, 1, &ri.Geo->vertexBufferView());
+		cmdList->IASetIndexBuffer(&ri.Geo->indexBufferView());
+		cmdList->IASetPrimitiveTopology(ri.primitiveType);
+
+		D3D12_GPU_VIRTUAL_ADDRESS objCBAddress = objectCB->GetGPUVirtualAddress() + ri.objCBIndex*objCBByteSize;
+
+		cmdList->SetGraphicsRootConstantBufferView(0, objCBAddress);
+
+		UINT indexCount = ri.Geo->DrawArgs["grid"].IndexCount;
+		UINT startIndex= ri.Geo->DrawArgs["grid"].StartIndexLocation;
+		UINT baseVertexLocation = ri.Geo->DrawArgs["grid"].BaseVertexLocation;
+
+		cmdList->DrawIndexedInstanced(indexCount, 1, startIndex, baseVertexLocation, 0);
+
+		//Draw just points
+		//m_CmdList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+		//m_CmdList->DrawInstanced(ri.Geo->DrawArgs["grid"].VertextCount, 1, 0, 0);
+	}
+}
 void myAppClass::Update()
 {		
-	XMFLOAT4X4 mWorld = MathHelper::Identity4x4();
-	XMFLOAT4X4 mView = MathHelper::Identity4x4();
-	XMFLOAT4X4 mProj  = MathHelper::Identity4x4();
-
-	// Convert Spherical to Cartesian coordinates.
-	float x = mRadius*sinf(mPhi)*cosf(mTheta);
-	float z = mRadius*sinf(mPhi)*sinf(mTheta);
-	float y = mRadius*cosf(mPhi);
-
-	// Build the view matrix.
-	XMVECTOR pos = XMVectorSet(x, y, z, 1.0f);
-	XMVECTOR target = XMVectorZero();
-	XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
-	XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
-	XMStoreFloat4x4(&mView, view);
-
-	XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f*3.1415f, AspectRatio, 1.0f, 1000.0f);
-	XMStoreFloat4x4(&mProj, P);
-
-	XMMATRIX world = XMLoadFloat4x4(&mWorld);
-	XMMATRIX proj = XMLoadFloat4x4(&mProj);
-	XMMATRIX worldViewProj = world*view*proj;
-
-	// Update the constant buffer with the latest worldViewProj matrix.
-	ObjectContants objConstants;
-	XMStoreFloat4x4(&objConstants.wordViewProj, XMMatrixTranspose(worldViewProj));
-
-	memcpy(&m_ConstBufferCPUAddress[0], &objConstants, sizeof(ObjectContants));
-	int c43 = 2;
+	
+	m_iCurrentResourceIndex = (m_iCurrentResourceIndex + 1) % gNumFrameResourcesCount;
+	m_CurrentFrameResource = m_FrameResources.at(m_iCurrentResourceIndex).get();
+		
+	UpdateCamera();
+	UpdatePassCB();
+	UpdateCB();
+	UpdateGeometry();
 }
 
 void myAppClass::BuildDescriptorHeaps()
@@ -233,13 +246,16 @@ void myAppClass::BuildRootSignature()
 	ThrowIfFailed(m_device->CreateRootSignature(0, serializedRootSig->GetBufferPointer(), serializedRootSig->GetBufferSize(), IID_PPV_ARGS(&m_RootSignature)));
 	*/
 
-	CD3DX12_ROOT_PARAMETER slotParametr[1];
+	CD3DX12_ROOT_PARAMETER slotParametr[2];
 
 	CD3DX12_DESCRIPTOR_RANGE cbvTable;
 	cbvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
-	slotParametr[0].InitAsDescriptorTable(1, &cbvTable);
+	//slotParametr[0].InitAsDescriptorTable(1, &cbvTable);
 
-	CD3DX12_ROOT_SIGNATURE_DESC rootDecs(1, slotParametr, 0, nullptr,D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	slotParametr[0].InitAsConstantBufferView(0);
+	slotParametr[1].InitAsConstantBufferView(1);
+
+	CD3DX12_ROOT_SIGNATURE_DESC rootDecs(2, slotParametr, 0, nullptr,D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	ThrowIfFailed(D3D12SerializeRootSignature(&rootDecs, D3D_ROOT_SIGNATURE_VERSION_1, &serializedRootSig, &error));
 
@@ -262,9 +278,10 @@ void myAppClass::BuildShadersAndInputLayout()
 
 void myAppClass::BuildBoxGeometry()
 {
+	/*
 	// Load model from file 
 	ModelLoaderClass ModelLoader;
-	ModelLoader.GenerateDelone();
+	ModelLoader.GenerateDelone(N);
 	//ModelLoader.LoadModelFromFile(L"PlainModel.obj");
 //	ModelLoader.LoadModelFromFile(L"m4.obj");
 
@@ -288,46 +305,7 @@ void myAppClass::BuildBoxGeometry()
 		uint16_t tmpIndex = ModelLoader.GetNextI();
 		indices.push_back(tmpIndex);
 	}
-	/*
-	std::array<Vertex, 8> vertices =
-	{
-		Vertex({ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f)}),
-		Vertex({ XMFLOAT3(-1.0f, +1.0f, -1.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) }),
-		Vertex({ XMFLOAT3(+1.0f, +1.0f, -1.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) }),
-		Vertex({ XMFLOAT3(+1.0f, -1.0f, -1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) }),
-		Vertex({ XMFLOAT3(-1.0f, -1.0f, +1.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) }),
-		Vertex({ XMFLOAT3(-1.0f, +1.0f, +1.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) }),
-		Vertex({ XMFLOAT3(+1.0f, +1.0f, +1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) }),
-		Vertex({ XMFLOAT3(+1.0f, -1.0f, +1.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) })
-	};
-	*/
-	/*
-	std::array<std::uint16_t, 36> indices =
-	{// front face
-		0, 1, 2,
-		0, 2, 3,
-
-		// back face
-		4, 6, 5,
-		4, 7, 6,
-
-		// left face
-		4, 5, 1,
-		4, 1, 0,
-
-		// right face
-		3, 2, 6,
-		3, 6, 7,
-
-		// top face
-		1, 5, 6,
-		1, 6, 2,
-
-		// bottom face
-		4, 0, 3,
-		4, 3, 7 
-	};
-	*/
+	
 	const UINT vbByteSize = (UINT) vertices.size() * sizeof(Vertex);
 	const UINT ibByteSize = (UINT) indices.size() * sizeof(uint16_t);
 	
@@ -346,6 +324,215 @@ void myAppClass::BuildBoxGeometry()
 	m_box->box.VertextCount = (UINT)VertexCount;
 	m_box->box.StartIndexLocation = 0;
 	m_box->box.BaseVertexLocation = 0;
+	*/
+}
+
+void myAppClass::BuildGeometry()
+{
+	
+	auto geo = std::make_unique<MeshGeometry>();
+
+	geo->Name = "Terrain";
+	geo->VertexBufferGPU = nullptr;
+	geo->IndexBufferGPU = nullptr;
+
+	mGeometry["terrainGeo"] = std::move(geo);
+
+	renderNewTrianles = true;
+	N = -1;
+}
+
+void myAppClass::BuildRenderItems()
+{
+	//auto terrainItem = std::make_unique<RenderItem>();
+	RenderItem terrainItem;// = std::make_unique<RenderItem>();
+
+	terrainItem.world = MathHelper::Identity4x4();
+	terrainItem.objCBIndex = 0;
+	terrainItem.Geo = mGeometry["terrainGeo"].get();
+	terrainItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	
+	//m_AllRenderItems.push_back(std::move(terrainItem));
+	m_AllRenderItems.push_back(terrainItem);
+}
+
+void myAppClass::UpdateGeometry()
+{
+	if (renderNewTrianles || renderPrevTiangles || newFliplevel || prevFlipLevel)
+	{
+		// нужно построить и загрузить новую порцию данные/продвинутьс€ на 1 триугольник в треангул€ции
+		if (renderNewTrianles)
+		{
+			N++;
+			FlipLevel = 0;
+		}
+		else if (renderPrevTiangles)
+		{
+			N--;
+			FlipLevel = 0;
+		}
+		
+		if (newFliplevel) FlipLevel++;
+		else if (prevFlipLevel) FlipLevel--;
+		
+
+		if (N < 0) N = 0;
+		if (FlipLevel < 0) FlipLevel = 0;
+
+		renderNewTrianles = false;
+		renderPrevTiangles = false;
+		newFliplevel = false;
+		prevFlipLevel = false;
+
+		m_vertices.clear();
+		m_indices.clear();
+
+		// Load model from file 
+		ModelLoaderClass ModelLoader;
+		ModelLoader.GenerateDelone(N, FlipLevel);
+		//ModelLoader.LoadModelFromFile(L"PlainModel.obj");
+
+		int VertexCount = ModelLoader.GetVectorSizeV();
+
+		ModelLoader.SetToBeginV();
+		for (int i = 0; i < VertexCount; i++)
+		{
+			VertexModelLoader tmpVert = ModelLoader.GetNextV();
+			tmpVert.z = tmpVert.y;// / VertexCount;
+			tmpVert.y = 0 + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (1 - 0)));;
+			m_vertices.push_back(Vertex({ XMFLOAT3(tmpVert.x, tmpVert.y, tmpVert.z), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) }));
+		}
+
+		int IndexCount = ModelLoader.GetVectorSizeI();
+		
+		ModelLoader.SetToBeginI();
+		for (int i = 0; i < IndexCount; i++)
+		{
+			uint16_t tmpIndex = ModelLoader.GetNextI();
+			m_indices.push_back(tmpIndex);
+		}
+
+		m_AllRenderItems.at(0).numDirtyVI = gNumFrameResourcesCount;
+	}
+	
+	if (m_AllRenderItems.at(0).numDirtyVI > 0)
+	{
+		//если есть новые данные которые надо загрузить в буффер Vertices/Indices FrameResource, делаем это дл€ кажого FrameResource
+		int VertexCount = m_vertices.size();
+		int IndexCount = m_indices.size();
+
+		auto currVertices = m_CurrentFrameResource->vertices.get();
+		auto currIndices = m_CurrentFrameResource->indices.get();
+
+		for (int i = 0; i < VertexCount; i++)
+		{
+			Vertex v;
+			currVertices->CopyData(i, m_vertices.at(i));
+		}
+
+		for (int i = 0; i < IndexCount; i++)
+		{
+			Vertex v;
+			currIndices->CopyData(i, m_indices.at(i));
+		}
+
+		const UINT vbByteSize = (UINT)m_vertices.size() * sizeof(Vertex);
+		const UINT ibByteSize = (UINT)m_indices.size() * sizeof(UINT32);
+
+		mGeometry["terrainGeo"]->vertexByteStride = sizeof(Vertex);
+		mGeometry["terrainGeo"]->vertexBufferByteSize = vbByteSize;
+		mGeometry["terrainGeo"]->indexFormat = DXGI_FORMAT_R32_UINT;
+		mGeometry["terrainGeo"]->IndexBufferByteSize = ibByteSize;
+		
+		mGeometry["terrainGeo"]->VertexBufferGPU = currVertices->Resource();
+		mGeometry["terrainGeo"]->IndexBufferGPU = currIndices->Resource();
+
+		SubMesh submesh;
+		submesh.IndexCount = (UINT)IndexCount;
+		submesh.VertextCount = (UINT)VertexCount;
+		submesh.StartIndexLocation = 0;
+		submesh.BaseVertexLocation = 0;
+
+		mGeometry["terrainGeo"]->DrawArgs["grid"] = submesh;
+		
+		m_AllRenderItems.at(0).numDirtyVI--; //текущий FrameResource мы обнвовили
+	}
+	
+}
+
+void myAppClass::UpdateCB()
+{
+	auto currCBObject = m_CurrentFrameResource->perObjectCB.get();
+
+	if (m_AllRenderItems.at(0).numDirtyCB > 0)
+	{
+		XMMATRIX world = XMLoadFloat4x4(&m_AllRenderItems.at(0).world);
+
+		//sworld = XMMatrixRotationX(90);
+
+		ObjectContants objConstants;
+		XMStoreFloat4x4(&objConstants.word, XMMatrixTranspose(world));
+
+		currCBObject->CopyData(m_AllRenderItems.at(0).objCBIndex, objConstants);
+
+		m_AllRenderItems.at(0).numDirtyCB--; // ќбновили Constant object дл€ текущего FrameResource;
+	}
+}
+
+void myAppClass::UpdatePassCB()
+{
+	{
+		//this should be in onResize section
+		XMMATRIX P = XMMatrixPerspectiveFovLH(0.25*3.14, AspectRatio, 1.0f, 1000.0f);
+		XMStoreFloat4x4(&mProj, P);
+	}
+
+	PassConstants mMainPassCB;
+	XMMATRIX view = XMLoadFloat4x4(&mView);
+	XMMATRIX proj = XMLoadFloat4x4(&mProj);
+
+	XMMATRIX viewProj = XMMatrixMultiply(view, proj);
+	XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
+	XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(proj), proj);
+	XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
+
+	XMStoreFloat4x4(&mMainPassCB.View, XMMatrixTranspose(view));
+	XMStoreFloat4x4(&mMainPassCB.InvView, XMMatrixTranspose(invView));
+	XMStoreFloat4x4(&mMainPassCB.Proj, XMMatrixTranspose(proj));
+	XMStoreFloat4x4(&mMainPassCB.InvProj, XMMatrixTranspose(invProj));
+	XMStoreFloat4x4(&mMainPassCB.ViewProj, XMMatrixTranspose(viewProj));
+	XMStoreFloat4x4(&mMainPassCB.InvViewProj, XMMatrixTranspose(invViewProj));
+	mMainPassCB.EyePosW = mEyePos;
+	mMainPassCB.RenderTargetSize = XMFLOAT2((float)m_width, (float)m_height);
+	mMainPassCB.InvRenderTargetSize = XMFLOAT2(1.0f / m_width, 1.0f / m_height);
+	mMainPassCB.NearZ = 1.0f;
+	mMainPassCB.FarZ = 1000.0f;
+	mMainPassCB.TotalTime = 0;// gt.TotalTime();
+	mMainPassCB.DeltaTime = 0;//gt.DeltaTime();
+	//mMainPassCB.AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
+
+	//XMVECTOR lightDir = -MathHelper::SphericalToCartesian(1.0f, mSunTheta, mSunPhi);
+
+	//XMStoreFloat3(&mMainPassCB.Lights[0].Direction, lightDir);
+	//mMainPassCB.Lights[0].Strength = { 1.0f, 1.0f, 0.9f };
+
+	auto currPassCB = m_CurrentFrameResource->passCB.get();
+	currPassCB->CopyData(0, mMainPassCB);
+}
+
+void myAppClass::UpdateCamera()
+{
+	mEyePos.x = mRadius*sinf(mPhi)*cosf(mTheta);
+	mEyePos.z = mRadius*sinf(mPhi)*sinf(mTheta);
+	mEyePos.y = mRadius*cosf(mPhi);
+
+	XMVECTOR pos = XMVectorSet(mEyePos.x, mEyePos.y, mEyePos.z, 1.0f);
+	XMVECTOR target = XMVectorZero();
+	XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	
+	XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
+	XMStoreFloat4x4(&mView, view);
+	
 }
 
 void myAppClass::BuildPSO()
@@ -376,6 +563,7 @@ void myAppClass::BuildPSO()
 	else if (Mode == PointMode)
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
 	
+	FrontCounterClockwise = false;
 	psoDesc.RasterizerState.FrontCounterClockwise = FrontCounterClockwise;
 	psoDesc.NumRenderTargets = 1;
 	psoDesc.RTVFormats[0] = m_BackBufferFormat;
@@ -385,7 +573,6 @@ void myAppClass::BuildPSO()
 	//ThrowIfFailed(m_device->CreateGraphicsPipelineState(&psoDesc,IID_PPV_ARGS(&m_pso)));
 	HRESULT hr = m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pso));
 }
-
 
 ComPtr<ID3DBlob> myAppClass::CompileShader(const std::wstring& filename, const D3D_SHADER_MACRO* defines, const std::string& entrypoint, const std::string& target)
 {
@@ -439,6 +626,7 @@ ComPtr<ID3D12Resource> myAppClass::CreateDeafultBuffer(const void* initData, UIN
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, int showCmd)
 {
+	
 	try
 	{			
 		myAppClass commonApp(hInstance);
@@ -453,4 +641,5 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, in
 		return 0;
 	}
 	
+
 }

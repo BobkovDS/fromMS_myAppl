@@ -5,7 +5,12 @@
 #include <memory>
 #include <vector>
 #include <array>
+#include "FrameResource.h"
+#include <unordered_map>
 
+
+static const int gNumFrameResourcesCount = 3;
+static const int VerticesCount = 100002; // tmp decision
 
 struct SubMesh
 {
@@ -20,6 +25,9 @@ struct MeshGeometry
 public:
 	std::string Name;
 
+	//ComPtr<ID3DBlob> VertexBufferCPU = nullptr;
+	//ComPtr<ID3DBlob> VertexBufferCPU = nullptr;
+
 	ComPtr<ID3D12Resource> VertexBufferGPU = nullptr;
 	ComPtr<ID3D12Resource> IndexBufferGPU = nullptr;
 
@@ -30,9 +38,9 @@ public:
 	UINT vertexByteStride = 0;
 	UINT vertexBufferByteSize = 0;
 	UINT IndexBufferByteSize = 0;
-	DXGI_FORMAT indexFormat = DXGI_FORMAT_R16_UINT;
+	DXGI_FORMAT indexFormat = DXGI_FORMAT_R32_UINT;
 
-	SubMesh box;
+	std::unordered_map<std::string, SubMesh> DrawArgs;	
 
 	D3D12_VERTEX_BUFFER_VIEW vertexBufferView() const
 	{
@@ -62,6 +70,23 @@ public:
 };
 
 
+struct RenderItem
+{
+	DirectX::XMFLOAT4X4 world = MathHelper::Identity4x4();
+	int numDirtyCB = gNumFrameResourcesCount; // dirty flag for perConstaBuffer
+	int numDirtyVI = gNumFrameResourcesCount; // dirty flag for Vertices/Indices
+
+	UINT objCBIndex = 1;
+	D3D12_PRIMITIVE_TOPOLOGY primitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+	MeshGeometry* Geo = nullptr;
+
+	UINT IndexCount = 0;
+	UINT VertexCount = 0;
+	UINT StartIndexLocation = 0;
+	int BaseVertexLocation = 0;
+};
+
 class myAppClass : public Cmn3DApp
 {
 public:
@@ -83,22 +108,45 @@ private:
 	ComPtr<ID3DBlob> m_vsByteCode = nullptr;
 	ComPtr<ID3DBlob> m_psByteCode = nullptr;	
 	std::vector<D3D12_INPUT_ELEMENT_DESC> m_InputLayout;
-	std::unique_ptr< MeshGeometry> m_box = nullptr;
+	std::unique_ptr< MeshGeometry> m_box = nullptr; 
+	std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> mGeometry;
+	std::vector<Vertex> m_vertices;
+	std::vector<uint16_t> m_indices;
+
+	std::vector<RenderItem> m_AllRenderItems;
+	
+	std::vector<std::unique_ptr<FrameResource>> m_FrameResources;
+	FrameResource* m_CurrentFrameResource = nullptr;
+	int m_iCurrentResourceIndex = 0;
+
 	float mRadius;
 	float mPhi;
 	float mTheta;
 	
+	DirectX::XMFLOAT3 mEyePos;// = { 0.0f, 0.0f, 0.0f };
+	DirectX::XMFLOAT4X4 mView;// = MathHelper::Identity4x4();
+	DirectX::XMFLOAT4X4 mProj;// = MathHelper::Identity4x4();
 
 	BYTE* m_ConstBufferCPUAddress = nullptr;
 
 	virtual void onMouseDown(WPARAM btnState, int x, int y) override;
 	
+	void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::vector<RenderItem>* rItems);
+
 	void BuildDescriptorHeaps();
+	void BuildFrameResourcse();
 	void BuildConstantBuffer();
 	void BuildRootSignature();
 	void BuildShadersAndInputLayout();
 	void BuildBoxGeometry();
+	void BuildGeometry();
+	void BuildRenderItems();
 	void BuildPSO();
+	
+	void UpdateCamera();
+	void UpdateGeometry();
+	void UpdateCB();
+	void UpdatePassCB();
 	
 	//Helper Functions
 	ComPtr<ID3DBlob> CompileShader(const std::wstring& filename, const D3D_SHADER_MACRO* defines, const std::string& entrypoint, const std::string& target);

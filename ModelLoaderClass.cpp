@@ -468,37 +468,48 @@ void ModelLoaderClass::DividePolygon(uint32_t devidePoint, std::vector<std::uint
 
 // ------------------------ DELONE --------------------------------
 
-void ModelLoaderClass::GenerateDelone()
+void ModelLoaderClass::GenerateDelone(int iN, int FlipLevel)
 {	
 	vertices.clear();
 	VertexModelLoader tPoint;
-	
-	//LoadModelFromFile(L"trianglD.obj");
+
+	bool readFromFile = false;
+
+
+	readFromFile = false;
 	
 	srand(static_cast<unsigned>(time(0)));
 
-	int N = 100;
-	float Lo = -6;
-	float Hi = 6;
-	
-	for (int i=0; i < N; i++)
+	int N = 100000;
+	float Lo = -60;
+	float Hi = 60;
+
+	iN = N + 1;
+	FlipLevel = -1;
+
+	if (readFromFile)
 	{
-		tPoint.x = Lo + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (Hi - Lo)));
-		tPoint.y = Lo + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (Hi - Lo)));
-		tPoint.z = 0;
-		tPoint.x = floor(tPoint.x * 100 + 0.5) / 100;
-		tPoint.y = floor(tPoint.y * 100 + 0.5) / 100;
-		vertices.push_back(tPoint);
+		//LoadModelFromFile(L"TriangulationTest10.obj");
+		LoadModelFromFile(L"TTM.obj");
+	}
+	else
+	{
+		for (int i = 0; i < N; i++)
+		{
+			tPoint.x = Lo + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (Hi - Lo)));
+			tPoint.y = Lo + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (Hi*2 - Lo)));
+			tPoint.z = 0;
+			//tPoint.x = floor(tPoint.x * 100 + 0.5) / 100;
+			//tPoint.y = floor(tPoint.y * 100 + 0.5) / 100;
+			vertices.push_back(tPoint);
+		}
 	}
 	
-	
-	
-
 	ConvexHullBuilder convexBuilder(&vertices);
 	convexBuilder.Build_ConvexHull();
 
-	TriangulationDilane DeloneCreator(Lo,Lo, int (Hi - Lo), int(Hi - Lo), &vertices);
+	TriangulationDilane DeloneCreator(Lo,Lo, int (Hi - Lo), int(Hi*2 - Lo), &vertices);
 	DeloneCreator.CreateTriangulation(&convexBuilder._result_convex_hull);
 	DeloneCreator.DelonePrepare();
-	DeloneCreator.DeloneIt(&indices);
+	DeloneCreator.DeloneIt(&indices, iN, FlipLevel);
 }

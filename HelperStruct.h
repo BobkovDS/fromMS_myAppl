@@ -2,7 +2,7 @@
 #include <vector>
 #include <array>
 
-#define accuracy  0.0001f
+#define accuracy  0.000001f
 
 struct VertexModelLoader {
 	float x, y, z;	

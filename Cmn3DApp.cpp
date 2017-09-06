@@ -45,7 +45,12 @@ LRESULT Cmn3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		}
 		else if (wParam == VK_LEFT) MoveObj(-1);
 		else if (wParam == VK_RIGHT) MoveObj(1);
-		else if (wParam == VK_SPACE) { ModeFlag = !ModeFlag; ResetPSO = true;}
+		//else if (wParam == VK_SPACE) { ModeFlag = !ModeFlag; ResetPSO = true;}
+		else if (wParam == VK_SPACE) { renderNewTrianles = true;}
+		
+		else if (wParam == 'Q') { newFliplevel = true; }
+		else if (wParam == 'W') { prevFlipLevel = true; }
+		else if (wParam == 'N') { renderPrevTiangles = true; }
 		else if (wParam == 'F')	{ Mode = FaceMode; ResetPSO = true;}
 		else if (wParam == 'L') { Mode = LineMode; ResetPSO = true;}
 		else if (wParam == 'P') { Mode = PointMode; ResetPSO = true;}
@@ -467,6 +472,9 @@ int Cmn3DApp::Run()
 			
 			statusText += L"Faces count: " + std::to_wstring(FaceCountToDraw);
 			if (Pause)	statusText += L" (PAUSE)";
+
+			statusText += L" N: " + std::to_wstring(N);
+			statusText += L" FlipLlv: " + std::to_wstring(FlipLevel);
 
 			SetWindowText(m_hMainWind,statusText.c_str());
 

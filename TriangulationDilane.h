@@ -13,7 +13,7 @@ public:
 	~TriangulationDilane();
 	void CreateTriangulation(std::vector<unsigned int> *inputIndecis);
 	void DelonePrepare();
-	void DeloneIt(std::vector<uint32_t> *outputIndices);	
+	void DeloneIt(std::vector<uint32_t> *outputIndices, int iN, int flipLevel);	
 
 private:
 	unsigned int _WidthX;
@@ -22,6 +22,8 @@ private:
 	float LoY; // Left value of Range for Y
 	int globalN = 100;// for debug
 	bool setGlobal = false; //for debug
+	int currentFlipLevel = 0;
+	int reqFlipLevel = -1;
 	std::vector<VertexModelLoader> *inPutDate;
 	std::vector<uint16_t> TriangulationDilane::CreateDinamicCAHS(std::vector<uint16_t> oldCASH, int oldM);
 		
@@ -36,6 +38,7 @@ private:
 	std::array<int, 3> WalkToDarkOfMind(int nomer, VertexModelLoader P);
 	std::array<int, 2>  GetNomers(int f, int s);
 	void ExportToFile(int N);
+	void ExportVerticesToFile();
 	// Methods and structures to build lisf of triangles which are made from input list of points
 	//std::vector<Triangle> Triangles;
 	//bool Flip(int f, int s);

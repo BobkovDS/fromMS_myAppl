@@ -13,7 +13,7 @@ public:
 	ModelLoaderClass();
 	~ModelLoaderClass();
 
-	void GenerateDelone();
+	void GenerateDelone(int N, int FlipLevel);
 	bool LoadModelFromFile(const std::wstring& filename);
 	int GetVectorSizeV();
 	int GetVectorSizeI();

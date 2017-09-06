@@ -16,7 +16,7 @@ public:
 		// UINT   SizeInBytes;   // multiple of 256
 		// } D3D12_CONSTANT_BUFFER_VIEW_DESC;
 		if (isConstantBuffer)
-			mElementByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(T));
+			mElementByteSize = CalcConstantBufferByteSize(sizeof(T));
 
 		ThrowIfFailed(device->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
@@ -58,4 +58,19 @@ private:
 
 	UINT mElementByteSize = 0;
 	bool mIsConstantBuffer = false;
+	static UINT CalcConstantBufferByteSize(UINT byteSize)
+	{
+		// Constant buffers must be a multiple of the minimum hardware
+		// allocation size (usually 256 bytes).  So round up to nearest
+		// multiple of 256.  We do this by adding 255 and then masking off
+		// the lower 2 bytes which store all bits < 256.
+		// Example: Suppose byteSize = 300.
+		// (300 + 255) & ~255
+		// 555 & ~255
+		// 0x022B & ~0x00ff
+		// 0x022B & 0xff00
+		// 0x0200
+		// 512
+		return (byteSize + 255) & ~255;
+	}
 };
