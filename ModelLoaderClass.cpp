@@ -58,23 +58,25 @@ bool ModelLoaderClass::LoadModelFromFile(const std::wstring& filename)
 				for (int i = FaceIndicesfromFile.size() - 1; i >= 0; i--)
 					FaceIndices.push_back(FaceIndicesfromFile.at(i));
 
-				if (FaceIndices.size() >= 3) // at least we have 1 triangle
+				if (FaceIndices.size() > 3) // at least we have 1 polygon (2 and more triangle), so we need triangolize it
 				{
 					LocalFaceIndices.clear();
 					NewPolyIndices.clear();
 
-					if (indices.size() == 114) 
-					{
-						int dummy = 1;
-					}
-					//TrangulationOfPolygon(&tmpIndices);
 					vector<std::uint32_t> outputPolygon;
 					if (FindProjectPlane(vertices.at(FaceIndices.at(0)), vertices.at(FaceIndices.at(1)), vertices.at(FaceIndices.at(2)), vertices.at(FaceIndices.at(3)))) // !#? should be modification to use Indices
 						TrangulationOfPolygon(&LocalFaceIndices);
 
 					for (int i = 0; i < NewPolyIndices.size(); i++) 
 					{
-						indices.push_back(FaceIndices.at( NewPolyIndices.at(i))); //Vertex #1;						
+						indices.push_back(FaceIndices.at( NewPolyIndices.at(i))); 
+					}
+				}
+				else if (FaceIndices.size() == 3)
+				{
+					for (int i = 0; i < 3; i++)
+					{
+						indices.push_back(FaceIndices.at(i)); 
 					}
 				}
 
@@ -476,11 +478,11 @@ void ModelLoaderClass::GenerateDelone(int iN, int FlipLevel)
 	bool readFromFile = false;
 
 
-	readFromFile = false;
+	readFromFile = true;
 	
 	srand(static_cast<unsigned>(time(0)));
 
-	int N = 100000;
+	int N = 1000;
 	float Lo = -60;
 	float Hi = 60;
 
@@ -490,7 +492,7 @@ void ModelLoaderClass::GenerateDelone(int iN, int FlipLevel)
 	if (readFromFile)
 	{
 		//LoadModelFromFile(L"TriangulationTest10.obj");
-		LoadModelFromFile(L"TTM.obj");
+		LoadModelFromFile(L"terrain.obj");
 	}
 	else
 	{
@@ -512,4 +514,9 @@ void ModelLoaderClass::GenerateDelone(int iN, int FlipLevel)
 	DeloneCreator.CreateTriangulation(&convexBuilder._result_convex_hull);
 	DeloneCreator.DelonePrepare();
 	DeloneCreator.DeloneIt(&indices, iN, FlipLevel);
+}
+
+void ModelLoaderClass::LoadHighMap(std::string fileNanme)
+{
+
 }

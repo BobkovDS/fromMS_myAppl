@@ -47,5 +47,6 @@ private:
 	int DirTest(std::vector<std::uint32_t> *inputPolygon);
 	float Nf2(uint32_t pNI, uint32_t pI1, uint32_t pI2); // Orientation test for point and line (or 3 points on one line/ or S of triangle)
 	int CrossSegm(uint32_t p1I, uint32_t p2I, uint32_t p3I, uint32_t p4I, std::vector<std::uint32_t> *inputPolygon); // Segments cross test
+	void LoadHighMap(std::string fileNanme);
 };
 

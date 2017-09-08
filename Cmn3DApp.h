@@ -88,11 +88,8 @@ private: //Only for this class
 	
 	HINSTANCE m_hInstance;
 	HWND m_hMainWind;
+
 	HANDLE m_fenceEvent;
-
-	
-	
-
 	UINT64 m_fenceValue;
 		
 	ComPtr<ID3D12Resource> m_DepthStencilSBuffer;

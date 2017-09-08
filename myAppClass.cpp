@@ -18,16 +18,59 @@ myAppClass::~myAppClass()
 
 void myAppClass::onMouseDown(WPARAM btnState, int x, int y)
 {
-	//MessageBox(0, L"Privet :) ", L"Message", 0);
+	m_MouseDown = true;
+	m_MouseDownPoint.x = x;
+	m_MouseDownPoint.y = y;
+}
+void myAppClass::onMouseUp(WPARAM btnState, int x, int y)
+{
+	m_MouseDown = false;
+}
+void myAppClass::onMouseMove(WPARAM btnState, int x, int y)
+{
+	if (m_MouseDown)
+	{
+		if (btnState == MK_LBUTTON)
+		{
+			if (y != m_MouseDownPoint.y) 
+				mTheta += (y - m_MouseDownPoint.y)/abs(y - m_MouseDownPoint.y) *0.5f;
+			
+			if (x != m_MouseDownPoint.x)
+				mPhi += (m_MouseDownPoint.x - x)/abs(m_MouseDownPoint.x - x)* 0.5f;
+
+		
+		}		
+		else if (btnState == MK_RBUTTON)
+		{
+			if (x != m_MouseDownPoint.x)
+				mRadius += (m_MouseDownPoint.x - x)/abs(m_MouseDownPoint.x - x)* 1.0f;
+		}
+		
+		//if CTRL
+		else if (btnState == (MK_LBUTTON | MK_CONTROL))
+		{
+			if (y != m_MouseDownPoint.y)
+				mThetaCamera += (y - m_MouseDownPoint.y) / abs(y - m_MouseDownPoint.y) *2.0f;
+
+			if (x != m_MouseDownPoint.x)
+				mPhiCamera += (m_MouseDownPoint.x - x) / abs(m_MouseDownPoint.x - x)* 2.0f;
+			
+		}
+		m_MouseDownPoint.x = x;
+		m_MouseDownPoint.y = y;
+	}
 }
 
 void myAppClass::Initialize()
 {
 	Cmn3DApp::Initialize();
 	
-	mPhi = 5.0f;
-	mTheta = 1.5f*3.14f;
-	mRadius = 20.5f;
+	mPhi = 0;// 5.0f;
+	mTheta = 0;// 1.5f*3.14f;
+	mThetaCamera = 0;
+	mPhiCamera = 0;
+	mRadius = 60.5f;
+	mRadiusCamera = mRadius;
 
 	ThrowIfFailed(m_CmdList->Reset(m_CmdAllocator.Get(), nullptr));
 
@@ -57,8 +100,10 @@ void myAppClass::BuildFrameResourcse()
 
 void myAppClass::MoveObj(int Sig)
 {
+	/*
 	if (Sig == -1) mTheta -= XMConvertToRadians(1.1f);
 	else mTheta += XMConvertToRadians(1.1f);
+	*/
 }
 
 void myAppClass::Draw()
@@ -164,6 +209,7 @@ void myAppClass::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::vector
 		//m_CmdList->DrawInstanced(ri.Geo->DrawArgs["grid"].VertextCount, 1, 0, 0);
 	}
 }
+
 void myAppClass::Update()
 {		
 	
@@ -330,6 +376,7 @@ void myAppClass::BuildBoxGeometry()
 void myAppClass::BuildGeometry()
 {
 	
+	// -------------------    Create Geometry entry for Terrain
 	auto geo = std::make_unique<MeshGeometry>();
 
 	geo->Name = "Terrain";
@@ -340,20 +387,83 @@ void myAppClass::BuildGeometry()
 
 	renderNewTrianles = true;
 	N = -1;
+
+	// -------------------     Create geometry entry for Target point of View
+	// Load model from file 
+	
+	ModelLoaderClass ModelLoader;
+	std::vector<Vertex> tpVertices;
+	std::vector<uint16_t> tpIindices;
+
+	ModelLoader.LoadModelFromFile(L"targetPoint.obj");
+
+	int VertexCount = ModelLoader.GetVectorSizeV();
+
+	ModelLoader.SetToBeginV();
+	for (int i = 0; i < VertexCount; i++)
+	{
+		VertexModelLoader tmpVert = ModelLoader.GetNextV();		
+		tpVertices.push_back(Vertex({ XMFLOAT3(tmpVert.x*10, tmpVert.y * 10, tmpVert.z * 10), XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f) }));
+	}
+
+	int IndexCount = ModelLoader.GetVectorSizeI();
+
+	ModelLoader.SetToBeginI();
+	for (int i = 0; i < IndexCount; i++)
+	{
+		uint16_t tmpIndex = ModelLoader.GetNextI();
+		tpIindices.push_back(tmpIndex);
+		
+	}
+
+	CreateConstGeometry("targetPoint", &tpVertices, &tpIindices, sizeof(Vertex), sizeof(UINT16), tpVertices.size(), tpIindices.size());
+
+	// -------------------     Create Geometry entry for Coordinate system
+
+	std::array<Vertex, 4> csVertices = {
+		Vertex({ XMFLOAT3{ 0.0f, 0.0f, 0.0f }, XMFLOAT4{ 1.0f, 0, 0, 1.0f } }),
+		Vertex({ XMFLOAT3{ 10.0f, 0.0f, 0.0f }, XMFLOAT4{ 1.0f, 0, 0, 1.0f } }),
+		Vertex({ XMFLOAT3{ 0.0f, 10.0f, 0.0f }, XMFLOAT4{ 0, 1.f, 0,  1.0f } }),
+		Vertex({ XMFLOAT3{ 0.0f, 0.0f, 10.0f }, XMFLOAT4{ 0, 0, 1.0f, 1.0f } })
+	};
+
+	std::array<UINT16, 6> csIndices = {
+		0, 1,
+		0, 2,
+		0, 3
+	};
+
+	CreateConstGeometry("CS", &csVertices, &csIndices, sizeof(Vertex), sizeof(UINT16), csVertices.size(), csIndices.size());
 }
 
 void myAppClass::BuildRenderItems()
 {
 	//auto terrainItem = std::make_unique<RenderItem>();
-	RenderItem terrainItem;// = std::make_unique<RenderItem>();
+	RenderItem renderItem;// = std::make_unique<RenderItem>();
 
-	terrainItem.world = MathHelper::Identity4x4();
-	terrainItem.objCBIndex = 0;
-	terrainItem.Geo = mGeometry["terrainGeo"].get();
-	terrainItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	renderItem.world = MathHelper::Identity4x4();
+	renderItem.objCBIndex = 0;
+	renderItem.Geo = mGeometry["terrainGeo"].get();
+	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	
 	//m_AllRenderItems.push_back(std::move(terrainItem));
-	m_AllRenderItems.push_back(terrainItem);
+	m_AllRenderItems.push_back(renderItem);
+
+	renderItem.world = MathHelper::Identity4x4();
+	renderItem.objCBIndex = 0;
+	renderItem.Geo = mGeometry["CS"].get();
+	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_LINELIST;
+	renderItem.numDirtyCB = renderItem.numDirtyVI = 0;
+
+	m_AllRenderItems.push_back(renderItem);
+
+	renderItem.world = MathHelper::Identity4x4();
+	renderItem.objCBIndex = 0;
+	renderItem.Geo = mGeometry["targetPoint"].get();
+	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	renderItem.numDirtyCB = renderItem.numDirtyVI = 0;
+
+	m_AllRenderItems.push_back(renderItem);
 }
 
 void myAppClass::UpdateGeometry()
@@ -389,8 +499,9 @@ void myAppClass::UpdateGeometry()
 
 		// Load model from file 
 		ModelLoaderClass ModelLoader;
-		ModelLoader.GenerateDelone(N, FlipLevel);
+		//ModelLoader.GenerateDelone(N, FlipLevel);
 		//ModelLoader.LoadModelFromFile(L"PlainModel.obj");
+		ModelLoader.LoadModelFromFile(L"terrain.obj"); 
 
 		int VertexCount = ModelLoader.GetVectorSizeV();
 
@@ -398,8 +509,8 @@ void myAppClass::UpdateGeometry()
 		for (int i = 0; i < VertexCount; i++)
 		{
 			VertexModelLoader tmpVert = ModelLoader.GetNextV();
-			tmpVert.z = tmpVert.y;// / VertexCount;
-			tmpVert.y = 0 + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (1 - 0)));;
+			//tmpVert.z = tmpVert.y;// / VertexCount;
+			//tmpVert.y = 0 + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (1 - 0)));;
 			m_vertices.push_back(Vertex({ XMFLOAT3(tmpVert.x, tmpVert.y, tmpVert.z), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) }));
 		}
 
@@ -415,47 +526,50 @@ void myAppClass::UpdateGeometry()
 		m_AllRenderItems.at(0).numDirtyVI = gNumFrameResourcesCount;
 	}
 	
-	if (m_AllRenderItems.at(0).numDirtyVI > 0)
+	for (size_t i = 0; i < m_AllRenderItems.size(); i++)
 	{
-		//если есть новые данные которые надо загрузить в буффер Vertices/Indices FrameResource, делаем это для кажого FrameResource
-		int VertexCount = m_vertices.size();
-		int IndexCount = m_indices.size();
-
-		auto currVertices = m_CurrentFrameResource->vertices.get();
-		auto currIndices = m_CurrentFrameResource->indices.get();
-
-		for (int i = 0; i < VertexCount; i++)
+		if (m_AllRenderItems.at(i).numDirtyVI > 0)
 		{
-			Vertex v;
-			currVertices->CopyData(i, m_vertices.at(i));
+			//если есть новые данные которые надо загрузить в буффер Vertices/Indices FrameResource, делаем это для кажого FrameResource
+			int VertexCount = m_vertices.size();
+			int IndexCount = m_indices.size();
+
+			auto currVertices = m_CurrentFrameResource->vertices.get();
+			auto currIndices = m_CurrentFrameResource->indices.get();
+
+			for (int i = 0; i < VertexCount; i++)
+			{
+				Vertex v;
+				currVertices->CopyData(i, m_vertices.at(i));
+			}
+
+			for (int i = 0; i < IndexCount; i++)
+			{
+				Vertex v;
+				currIndices->CopyData(i, m_indices.at(i));
+			}
+
+			const UINT vbByteSize = (UINT)m_vertices.size() * sizeof(Vertex);
+			const UINT ibByteSize = (UINT)m_indices.size() * sizeof(UINT32);
+
+			mGeometry["terrainGeo"]->vertexByteStride = sizeof(Vertex);
+			mGeometry["terrainGeo"]->vertexBufferByteSize = vbByteSize;
+			mGeometry["terrainGeo"]->indexFormat = DXGI_FORMAT_R32_UINT;
+			mGeometry["terrainGeo"]->IndexBufferByteSize = ibByteSize;
+
+			mGeometry["terrainGeo"]->VertexBufferGPU = currVertices->Resource();
+			mGeometry["terrainGeo"]->IndexBufferGPU = currIndices->Resource();
+
+			SubMesh submesh;
+			submesh.IndexCount = (UINT)IndexCount;
+			submesh.VertextCount = (UINT)VertexCount;
+			submesh.StartIndexLocation = 0;
+			submesh.BaseVertexLocation = 0;
+
+			mGeometry["terrainGeo"]->DrawArgs["grid"] = submesh;
+
+			m_AllRenderItems.at(0).numDirtyVI--; //текущий FrameResource мы обнвовили
 		}
-
-		for (int i = 0; i < IndexCount; i++)
-		{
-			Vertex v;
-			currIndices->CopyData(i, m_indices.at(i));
-		}
-
-		const UINT vbByteSize = (UINT)m_vertices.size() * sizeof(Vertex);
-		const UINT ibByteSize = (UINT)m_indices.size() * sizeof(UINT32);
-
-		mGeometry["terrainGeo"]->vertexByteStride = sizeof(Vertex);
-		mGeometry["terrainGeo"]->vertexBufferByteSize = vbByteSize;
-		mGeometry["terrainGeo"]->indexFormat = DXGI_FORMAT_R32_UINT;
-		mGeometry["terrainGeo"]->IndexBufferByteSize = ibByteSize;
-		
-		mGeometry["terrainGeo"]->VertexBufferGPU = currVertices->Resource();
-		mGeometry["terrainGeo"]->IndexBufferGPU = currIndices->Resource();
-
-		SubMesh submesh;
-		submesh.IndexCount = (UINT)IndexCount;
-		submesh.VertextCount = (UINT)VertexCount;
-		submesh.StartIndexLocation = 0;
-		submesh.BaseVertexLocation = 0;
-
-		mGeometry["terrainGeo"]->DrawArgs["grid"] = submesh;
-		
-		m_AllRenderItems.at(0).numDirtyVI--; //текущий FrameResource мы обнвовили
 	}
 	
 }
@@ -522,15 +636,36 @@ void myAppClass::UpdatePassCB()
 
 void myAppClass::UpdateCamera()
 {
+	/*
+	// through hyperbolic sin and cos (?)
 	mEyePos.x = mRadius*sinf(mPhi)*cosf(mTheta);
 	mEyePos.z = mRadius*sinf(mPhi)*sinf(mTheta);
 	mEyePos.y = mRadius*cosf(mPhi);
+	*/
+
+
+	// Spherical to Deckard
+	float pi = 3.1415926;
+	DirectX::XMFLOAT3 TargetPos;
+
+	mEyePos.x = mRadius*sin(mTheta / 180 * pi)*sin(mPhi / 180 * pi);
+	mEyePos.z = mRadius*sin(mTheta / 180 * pi)*cos(mPhi / 180 * pi);
+	mEyePos.y = mRadius*cos(mTheta / 180 * pi);	
+
+	mRadiusCamera = 30.0f;
+	TargetPos.x = mRadiusCamera*sin(mThetaCamera / 180 * pi)*sin(mPhiCamera / 180 * pi)+mEyePos.x/2;
+	TargetPos.z = mRadiusCamera*sin(mThetaCamera / 180 * pi)*cos(mPhiCamera / 180 * pi) +mEyePos.z/2;
+	TargetPos.y = mRadiusCamera*cos(mThetaCamera / 180 * pi) - mRadiusCamera +mEyePos.y/2;
 
 	XMVECTOR pos = XMVectorSet(mEyePos.x, mEyePos.y, mEyePos.z, 1.0f);
-	XMVECTOR target = XMVectorZero();
+	
+	//XMVECTOR target = XMVectorZero();
+	
+	XMVECTOR target = XMVectorSet(TargetPos.x, TargetPos.y, TargetPos.z, 1.0f);
 	XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 	
 	XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
+	//XMMATRIX view = XMMatrixLookToLH(pos, target, up);
 	XMStoreFloat4x4(&mView, view);
 	
 }
@@ -622,6 +757,32 @@ ComPtr<ID3D12Resource> myAppClass::CreateDeafultBuffer(const void* initData, UIN
 	m_CmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ));
 	return defaultBuffer;
 
+}
+
+void myAppClass::CreateConstGeometry(std::string name, const void* vertexData, const void* indexData, int vertexSize, int indexSize, int vertexCount, int indexCount)
+{
+	auto geo = std::make_unique<MeshGeometry>();
+
+	geo->Name = name;
+
+	int vertexByteStride = vertexSize;
+			
+	geo->vertexBufferByteSize = vertexSize * vertexCount;
+	geo->IndexBufferByteSize = indexSize * indexCount;
+	geo->vertexByteStride = vertexByteStride;
+	geo->indexFormat = DXGI_FORMAT_R16_UINT;
+
+	geo->VertexBufferGPU = CreateDeafultBuffer(vertexData, geo->vertexBufferByteSize, geo->VertexBufferUploader);
+	geo->IndexBufferGPU = CreateDeafultBuffer(indexData, geo->IndexBufferByteSize, geo->IndexBufferUploader);
+
+	SubMesh submesh;
+	submesh.IndexCount = (UINT)indexCount;
+	submesh.VertextCount = (UINT)vertexCount;
+	submesh.StartIndexLocation = 0;
+	submesh.BaseVertexLocation = 0;
+
+	geo->DrawArgs["grid"] = submesh;
+	mGeometry[name] = std::move(geo);
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, int showCmd)

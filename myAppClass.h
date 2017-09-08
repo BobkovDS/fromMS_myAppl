@@ -96,11 +96,12 @@ public:
 	virtual void Initialize()override;
 	virtual void Draw() override;
 	virtual void Update() override;
-	virtual void MoveObj(int Sig) override;
+	virtual void MoveObj(int Sig) override;	
 		
 private:	
 	int flag = 0;
-	
+	bool m_MouseDown = false;
+	POINT m_MouseDownPoint;
 	ComPtr<ID3D12PipelineState> m_pso;
 	ComPtr<ID3D12DescriptorHeap> m_cbvHeap;
 	ComPtr<ID3D12Resource> m_UploadConstBuffer;
@@ -122,7 +123,12 @@ private:
 	float mRadius;
 	float mPhi;
 	float mTheta;
+
+	float mRadiusCamera;
+	float mPhiCamera;
+	float mThetaCamera;
 	
+
 	DirectX::XMFLOAT3 mEyePos;// = { 0.0f, 0.0f, 0.0f };
 	DirectX::XMFLOAT4X4 mView;// = MathHelper::Identity4x4();
 	DirectX::XMFLOAT4X4 mProj;// = MathHelper::Identity4x4();
@@ -130,6 +136,8 @@ private:
 	BYTE* m_ConstBufferCPUAddress = nullptr;
 
 	virtual void onMouseDown(WPARAM btnState, int x, int y) override;
+	virtual void onMouseUp(WPARAM btnState, int x, int y) override;
+	virtual void onMouseMove(WPARAM btnState, int x, int y) override;
 	
 	void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::vector<RenderItem>* rItems);
 
@@ -151,7 +159,7 @@ private:
 	//Helper Functions
 	ComPtr<ID3DBlob> CompileShader(const std::wstring& filename, const D3D_SHADER_MACRO* defines, const std::string& entrypoint, const std::string& target);
 	ComPtr<ID3D12Resource> CreateDeafultBuffer(const void* initData, UINT64 byteSize, ComPtr<ID3D12Resource>& uploadBuffer) ;
-
+	void CreateConstGeometry(std::string name, const void* vertData, const void* indexData, int vertexSize, int indexSize, int vertexCount, int indexCount);
 	static UINT myAppClass::CalcConstantBufferByteSize(UINT byteSize)
 	{
 		// Constant buffers must be a multiple of the minimum hardware
