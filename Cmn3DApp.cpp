@@ -49,7 +49,7 @@ LRESULT Cmn3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		else if (wParam == VK_SPACE) { renderNewTrianles = true;}
 		
 		else if (wParam == 'Q') { newFliplevel = true; }
-		else if (wParam == 'W') { prevFlipLevel = true; }
+		//else if (wParam == 'W') { prevFlipLevel = true; }
 		else if (wParam == 'N') { renderPrevTiangles = true; }
 		else if (wParam == 'F')	{ Mode = FaceMode; ResetPSO = true;}
 		else if (wParam == 'L') { Mode = LineMode; ResetPSO = true;}
@@ -65,6 +65,11 @@ LRESULT Cmn3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			FaceCountToDraw--;
 			if (FaceCountToDraw < 1) FaceCountToDraw = 1;
 		}
+		else if ((wParam == 'A') || (wParam == 'D') ||( wParam == 'W') ||( wParam == 'S')) 	{ onKeyPress(wParam); }
+		return 0;
+
+	case WM_KEYUP:
+		if ((wParam == 'A') || (wParam == 'D') || (wParam == 'W') || (wParam == 'S'))	{ onKeyUp(wParam);}
 		return 0;
 
 	case WM_DESTROY:

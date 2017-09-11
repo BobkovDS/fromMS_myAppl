@@ -83,6 +83,8 @@ protected: //Child class also can use it
 	virtual void onMouseDown(WPARAM btnState, int x, int y) {}
 	virtual void onMouseUp(WPARAM btnState, int x, int y) {}
 	virtual void onMouseMove(WPARAM btnState, int x, int y) {}
+	virtual void onKeyPress(WPARAM btnState) {}
+	virtual void onKeyUp(WPARAM btnState) {}
 
 private: //Only for this class
 	

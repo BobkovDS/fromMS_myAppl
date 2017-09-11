@@ -128,17 +128,25 @@ private:
 	float mPhiCamera;
 	float mThetaCamera;
 	
+	int moveLR = 0;
+	int moveUD = 0;	
+	int moveFB = 0;
 
 	DirectX::XMFLOAT3 mEyePos;// = { 0.0f, 0.0f, 0.0f };
 	DirectX::XMFLOAT4X4 mView;// = MathHelper::Identity4x4();
 	DirectX::XMFLOAT4X4 mProj;// = MathHelper::Identity4x4();
+
+	float pi = 3.1415926;
+	DirectX::XMFLOAT3 TargetPos;
 
 	BYTE* m_ConstBufferCPUAddress = nullptr;
 
 	virtual void onMouseDown(WPARAM btnState, int x, int y) override;
 	virtual void onMouseUp(WPARAM btnState, int x, int y) override;
 	virtual void onMouseMove(WPARAM btnState, int x, int y) override;
-	
+	virtual void onKeyPress(WPARAM btnState) override;
+	virtual void onKeyUp(WPARAM btnState) override;
+
 	void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::vector<RenderItem>* rItems);
 
 	void BuildDescriptorHeaps();

@@ -30,30 +30,30 @@ void myAppClass::onMouseMove(WPARAM btnState, int x, int y)
 {
 	if (m_MouseDown)
 	{
-		if (btnState == MK_LBUTTON)
+
+		//if CTRL
+		if (btnState == (MK_LBUTTON | MK_CONTROL))
 		{
 			if (y != m_MouseDownPoint.y) 
 				mTheta += (y - m_MouseDownPoint.y)/abs(y - m_MouseDownPoint.y) *0.5f;
 			
 			if (x != m_MouseDownPoint.x)
 				mPhi += (m_MouseDownPoint.x - x)/abs(m_MouseDownPoint.x - x)* 0.5f;
-
 		
 		}		
-		else if (btnState == MK_RBUTTON)
+		else if (btnState == (MK_RBUTTON | MK_CONTROL))
 		{
 			if (x != m_MouseDownPoint.x)
 				mRadius += (m_MouseDownPoint.x - x)/abs(m_MouseDownPoint.x - x)* 1.0f;
 		}
 		
-		//if CTRL
-		else if (btnState == (MK_LBUTTON | MK_CONTROL))
+		else if (btnState == MK_LBUTTON )
 		{
 			if (y != m_MouseDownPoint.y)
-				mThetaCamera += (y - m_MouseDownPoint.y) / abs(y - m_MouseDownPoint.y) *2.0f;
+				mThetaCamera += (y - m_MouseDownPoint.y) / abs(y - m_MouseDownPoint.y) *0.5f;
 
 			if (x != m_MouseDownPoint.x)
-				mPhiCamera += (m_MouseDownPoint.x - x) / abs(m_MouseDownPoint.x - x)* 2.0f;
+				mPhiCamera += -1*((m_MouseDownPoint.x - x) / abs(m_MouseDownPoint.x - x)* 0.5f);
 			
 		}
 		m_MouseDownPoint.x = x;
@@ -61,18 +61,44 @@ void myAppClass::onMouseMove(WPARAM btnState, int x, int y)
 	}
 }
 
+void myAppClass::onKeyPress(WPARAM btnState)
+{	
+	switch (btnState)
+	{
+	//case 'A': moveLR = -1; return;
+	//case 'D': moveLR = 1; return;
+	case 'W': moveFB =1 ; return;
+	case 'S': moveFB =-1 ; return;
+	}
+}
+
+void myAppClass::onKeyUp(WPARAM btnState)
+{
+	switch (btnState)
+	{
+	//case 'A': moveLR = 0; return;
+	//case 'D': moveLR = 0; return;
+	case 'W': moveFB = 0; return;
+	case 'S': moveFB = 0; return;
+	}
+}
+
 void myAppClass::Initialize()
 {
 	Cmn3DApp::Initialize();
 	
-	mPhi = 0;// 5.0f;
-	mTheta = 0;// 1.5f*3.14f;
-	mThetaCamera = 0;
-	mPhiCamera = 0;
-	mRadius = 60.5f;
+	mPhi = 34;// 5.0f;
+	mTheta = 78;// 1.5f*3.14f;
+	mThetaCamera = 36;
+	mPhiCamera = -466;
+	mRadius = 69.5f;
 	mRadiusCamera = mRadius;
 
 	ThrowIfFailed(m_CmdList->Reset(m_CmdAllocator.Get(), nullptr));
+
+	mEyePos.x = mRadius*sin(mTheta / 180 * pi)*sin(mPhi / 180 * pi);
+	mEyePos.z = mRadius*sin(mTheta / 180 * pi)*cos(mPhi / 180 * pi);
+	mEyePos.y = mRadius*cos(mTheta / 180 * pi);
 
 	BuildDescriptorHeaps();
 	BuildConstantBuffer();
@@ -92,9 +118,13 @@ void myAppClass::Initialize()
 
 void myAppClass::BuildFrameResourcse()
 {
+	UINT passcount = 1;
+	UINT objectCount = 2;
+	UINT materialCount = 0;
+
 	for (int i = 0; i < gNumFrameResourcesCount; i++)
 	{
-		m_FrameResources.push_back(std::make_unique<FrameResource>(m_device.Get(), 1, 1, 0, VerticesCount, VerticesCount * 3));		
+		m_FrameResources.push_back(std::make_unique<FrameResource>(m_device.Get(), passcount, objectCount, materialCount, VerticesCount, VerticesCount * 3));
 	}
 }
 
@@ -212,7 +242,6 @@ void myAppClass::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::vector
 
 void myAppClass::Update()
 {		
-	
 	m_iCurrentResourceIndex = (m_iCurrentResourceIndex + 1) % gNumFrameResourcesCount;
 	m_CurrentFrameResource = m_FrameResources.at(m_iCurrentResourceIndex).get();
 		
@@ -379,7 +408,7 @@ void myAppClass::BuildGeometry()
 	// -------------------    Create Geometry entry for Terrain
 	auto geo = std::make_unique<MeshGeometry>();
 
-	geo->Name = "Terrain";
+	geo->Name = "terrainGeo";
 	geo->VertexBufferGPU = nullptr;
 	geo->IndexBufferGPU = nullptr;
 
@@ -390,33 +419,60 @@ void myAppClass::BuildGeometry()
 
 	// -------------------     Create geometry entry for Target point of View
 	// Load model from file 
-	
-	ModelLoaderClass ModelLoader;
+		
 	std::vector<Vertex> tpVertices;
 	std::vector<uint16_t> tpIindices;
-
-	ModelLoader.LoadModelFromFile(L"targetPoint.obj");
-
-	int VertexCount = ModelLoader.GetVectorSizeV();
-
-	ModelLoader.SetToBeginV();
-	for (int i = 0; i < VertexCount; i++)
 	{
-		VertexModelLoader tmpVert = ModelLoader.GetNextV();		
-		tpVertices.push_back(Vertex({ XMFLOAT3(tmpVert.x*10, tmpVert.y * 10, tmpVert.z * 10), XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f) }));
+		ModelLoaderClass ModelLoader;
+		ModelLoader.LoadModelFromFile(L"targetPoint.obj");
+
+		int VertexCount = ModelLoader.GetVectorSizeV();
+
+		ModelLoader.SetToBeginV();
+		for (int i = 0; i < VertexCount; i++)
+		{
+			VertexModelLoader tmpVert = ModelLoader.GetNextV();
+			tpVertices.push_back(Vertex({ XMFLOAT3(tmpVert.x, tmpVert.y , tmpVert.z), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) }));
+		}
+
+		int IndexCount = ModelLoader.GetVectorSizeI();
+
+		ModelLoader.SetToBeginI();
+		for (int i = 0; i < IndexCount; i++)
+		{
+			uint16_t tmpIndex = ModelLoader.GetNextI();
+			tpIindices.push_back(tmpIndex);
+
+		}
+		CreateConstGeometry("targetPoint", tpVertices.data(), tpIindices.data(), sizeof(Vertex), sizeof(UINT16), tpVertices.size(), tpIindices.size());
 	}
-
-	int IndexCount = ModelLoader.GetVectorSizeI();
-
-	ModelLoader.SetToBeginI();
-	for (int i = 0; i < IndexCount; i++)
+	// ------------------- BOX 	
 	{
-		uint16_t tmpIndex = ModelLoader.GetNextI();
-		tpIindices.push_back(tmpIndex);
-		
-	}
+		ModelLoaderClass ModelLoader;
+		ModelLoader.LoadModelFromFile(L"worldBox.obj");
 
-	CreateConstGeometry("targetPoint", &tpVertices, &tpIindices, sizeof(Vertex), sizeof(UINT16), tpVertices.size(), tpIindices.size());
+		int VertexCount = ModelLoader.GetVectorSizeV();
+
+		tpVertices.clear();
+		tpIindices.clear();
+		ModelLoader.SetToBeginV();
+		for (int i = 0; i < VertexCount; i++)
+		{
+			VertexModelLoader tmpVert = ModelLoader.GetNextV();
+			tpVertices.push_back(Vertex({ XMFLOAT3(tmpVert.x, tmpVert.y , tmpVert.z), XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f) }));
+		}
+
+		int IndexCount = ModelLoader.GetVectorSizeI();
+
+		ModelLoader.SetToBeginI();
+		for (int i = 0; i < IndexCount; i++)
+		{
+			uint16_t tmpIndex = ModelLoader.GetNextI();
+			tpIindices.push_back(tmpIndex);
+
+		}
+		CreateConstGeometry("Box", tpVertices.data(), tpIindices.data(), sizeof(Vertex), sizeof(UINT16), tpVertices.size(), tpIindices.size());
+	}
 
 	// -------------------     Create Geometry entry for Coordinate system
 
@@ -453,14 +509,20 @@ void myAppClass::BuildRenderItems()
 	renderItem.objCBIndex = 0;
 	renderItem.Geo = mGeometry["CS"].get();
 	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_LINELIST;
+	renderItem.numDirtyVI = 0;	
+	m_AllRenderItems.push_back(renderItem);
+	
+	renderItem.world = MathHelper::Identity4x4();
+	renderItem.objCBIndex = 1;
+	renderItem.Geo = mGeometry["targetPoint"].get();
+	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	renderItem.numDirtyCB = renderItem.numDirtyVI = 0;
 
 	m_AllRenderItems.push_back(renderItem);
-
 	renderItem.world = MathHelper::Identity4x4();
 	renderItem.objCBIndex = 0;
-	renderItem.Geo = mGeometry["targetPoint"].get();
-	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	renderItem.Geo = mGeometry["Box"].get();
+	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_LINELIST;
 	renderItem.numDirtyCB = renderItem.numDirtyVI = 0;
 
 	m_AllRenderItems.push_back(renderItem);
@@ -468,6 +530,17 @@ void myAppClass::BuildRenderItems()
 
 void myAppClass::UpdateGeometry()
 {
+	int terrainIndex = -1;
+	for (size_t i = 0; i < m_AllRenderItems.size(); i++)
+	{
+		if (m_AllRenderItems.at(i).Geo->Name == "terrainGeo")
+		{
+			terrainIndex = i;
+		}
+	}
+
+	if (terrainIndex == -1) return;
+
 	if (renderNewTrianles || renderPrevTiangles || newFliplevel || prevFlipLevel)
 	{
 		// нужно построить и загрузить новую порцию данные/продвинутьс€ на 1 триугольник в треангул€ции
@@ -523,7 +596,7 @@ void myAppClass::UpdateGeometry()
 			m_indices.push_back(tmpIndex);
 		}
 
-		m_AllRenderItems.at(0).numDirtyVI = gNumFrameResourcesCount;
+		m_AllRenderItems.at(terrainIndex).numDirtyVI = gNumFrameResourcesCount;
 	}
 	
 	for (size_t i = 0; i < m_AllRenderItems.size(); i++)
@@ -568,7 +641,7 @@ void myAppClass::UpdateGeometry()
 
 			mGeometry["terrainGeo"]->DrawArgs["grid"] = submesh;
 
-			m_AllRenderItems.at(0).numDirtyVI--; //текущий FrameResource мы обнвовили
+			m_AllRenderItems.at(i).numDirtyVI--; //текущий FrameResource мы обнвовили
 		}
 	}
 	
@@ -578,18 +651,21 @@ void myAppClass::UpdateCB()
 {
 	auto currCBObject = m_CurrentFrameResource->perObjectCB.get();
 
-	if (m_AllRenderItems.at(0).numDirtyCB > 0)
+	for (size_t i = 0; i < m_AllRenderItems.size(); i++)
 	{
-		XMMATRIX world = XMLoadFloat4x4(&m_AllRenderItems.at(0).world);
+		if (m_AllRenderItems.at(i).numDirtyCB > 0)
+		{
+			XMMATRIX world = XMLoadFloat4x4(&m_AllRenderItems.at(i).world);
 
-		//sworld = XMMatrixRotationX(90);
+			//sworld = XMMatrixRotationX(90);
 
-		ObjectContants objConstants;
-		XMStoreFloat4x4(&objConstants.word, XMMatrixTranspose(world));
+			ObjectContants objConstants;
+			XMStoreFloat4x4(&objConstants.word, XMMatrixTranspose(world));
 
-		currCBObject->CopyData(m_AllRenderItems.at(0).objCBIndex, objConstants);
+			currCBObject->CopyData(m_AllRenderItems.at(i).objCBIndex, objConstants);
 
-		m_AllRenderItems.at(0).numDirtyCB--; // ќбновили Constant object дл€ текущего FrameResource;
+			m_AllRenderItems.at(i).numDirtyCB--; // ќбновили Constant object дл€ текущего FrameResource;
+		}
 	}
 }
 
@@ -645,29 +721,39 @@ void myAppClass::UpdateCamera()
 
 
 	// Spherical to Deckard
-	float pi = 3.1415926;
-	DirectX::XMFLOAT3 TargetPos;
 
-	mEyePos.x = mRadius*sin(mTheta / 180 * pi)*sin(mPhi / 180 * pi);
-	mEyePos.z = mRadius*sin(mTheta / 180 * pi)*cos(mPhi / 180 * pi);
-	mEyePos.y = mRadius*cos(mTheta / 180 * pi);	
 
-	mRadiusCamera = 30.0f;
-	TargetPos.x = mRadiusCamera*sin(mThetaCamera / 180 * pi)*sin(mPhiCamera / 180 * pi)+mEyePos.x/2;
-	TargetPos.z = mRadiusCamera*sin(mThetaCamera / 180 * pi)*cos(mPhiCamera / 180 * pi) +mEyePos.z/2;
-	TargetPos.y = mRadiusCamera*cos(mThetaCamera / 180 * pi) - mRadiusCamera +mEyePos.y/2;
+	TargetPos.x = sin(mThetaCamera / 180 * pi)*sin(mPhiCamera / 180 * pi);
+	TargetPos.z = sin(mThetaCamera / 180 * pi)*cos(mPhiCamera / 180 * pi);
+	TargetPos.y = cos(mThetaCamera / 180 * pi);
+
+	int dx = 60;
+	mEyePos.x += (TargetPos.x *moveFB)/ dx;
+	mEyePos.z += (TargetPos.z *moveFB)/ dx;
+	mEyePos.y += (TargetPos.y *moveFB)/ dx;
 
 	XMVECTOR pos = XMVectorSet(mEyePos.x, mEyePos.y, mEyePos.z, 1.0f);
 	
 	//XMVECTOR target = XMVectorZero();
 	
-	XMVECTOR target = XMVectorSet(TargetPos.x, TargetPos.y, TargetPos.z, 1.0f);
+	XMVECTOR target = XMVectorSet(TargetPos.x, TargetPos.y, TargetPos.z, 0.0f);
 	XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 	
-	XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
-	//XMMATRIX view = XMMatrixLookToLH(pos, target, up);
-	XMStoreFloat4x4(&mView, view);
+	//XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
+	XMMATRIX view = XMMatrixLookToLH(pos, target, up);
+	XMMATRIX tmpWorldTargetPoint = XMMatrixTranslationFromVector(target);
 	
+	XMStoreFloat4x4(&mView, view);
+
+
+	for (size_t i = 0; i < m_AllRenderItems.size(); i++)
+	{
+		if (m_AllRenderItems.at(i).Geo->Name == "targetPoint")
+		{
+			XMStoreFloat4x4(&m_AllRenderItems.at(i).world, tmpWorldTargetPoint);
+			m_AllRenderItems.at(i).numDirtyCB = gNumFrameResourcesCount;
+		}
+	}
 }
 
 void myAppClass::BuildPSO()

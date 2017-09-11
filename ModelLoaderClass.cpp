@@ -279,7 +279,7 @@ bool ModelLoaderClass::CreateMinPolygon(vector<std::uint32_t> *inputPolygon)
 	int m = 0;	
 	//outputPolygon.push_back(inputPolygon->at(0));
 
-	for (int i=1; i< inputPolygon->size(); i++)
+	for (int i=1; i<inputPolygon->size(); i++)
 	{
 		if (projection.at(inputPolygon->at(m)) != projection.at(inputPolygon->at(i))) //if Pm and Pi point in projection are not equal
 		{
@@ -321,7 +321,14 @@ bool ModelLoaderClass::CreateMinPolygon(vector<std::uint32_t> *inputPolygon)
 		}
 	}
 
-	if (Nf2(inputPolygon->at(0), inputPolygon->at(1), inputPolygon->at(m)) == 0)
+
+	if (Nf2(inputPolygon->at(0), inputPolygon->at(m-1), inputPolygon->at(m)) == 0)
+	{
+		inputPolygon->resize(m);
+		m--;
+	}
+
+	if (Nf2(inputPolygon->at(m-1), inputPolygon->at(m), inputPolygon->at(0)) == 0)
 	{
 		for (int i = 0; i < m; i++)
 		{
