@@ -105,6 +105,7 @@ void myAppClass::Initialize()
 	BuildRootSignature();
 	BuildShadersAndInputLayout();
 	BuildGeometry();	
+	BuildMaterial();
 	BuildRenderItems();
 	BuildFrameResourcse();
 	BuildPSO();
@@ -120,7 +121,7 @@ void myAppClass::BuildFrameResourcse()
 {
 	UINT passcount = 1;
 	UINT objectCount = 2;
-	UINT materialCount = 1;
+	UINT materialCount = mMaterials.size();
 
 	for (int i = 0; i < gNumFrameResourcesCount; i++)
 	{
@@ -227,7 +228,7 @@ void myAppClass::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::vector
 		cmdList->IASetPrimitiveTopology(ri.primitiveType);
 
 		D3D12_GPU_VIRTUAL_ADDRESS objCBAddress = objectCB->GetGPUVirtualAddress() + ri.objCBIndex*objCBByteSize;
-		D3D12_GPU_VIRTUAL_ADDRESS objMatCBAddress = matCB->GetGPUVirtualAddress() + ri.matIndex*matCBByteSize;
+		D3D12_GPU_VIRTUAL_ADDRESS objMatCBAddress = matCB->GetGPUVirtualAddress() + ri.Mat->MatCBIndex*matCBByteSize;
 
 		cmdList->SetGraphicsRootConstantBufferView(0, objCBAddress);
 		cmdList->SetGraphicsRootConstantBufferView(1, objMatCBAddress);
@@ -501,6 +502,33 @@ void myAppClass::BuildGeometry()
 	CreateConstGeometry("CS", &csVertices, &csIndices, sizeof(Vertex), sizeof(UINT16), csVertices.size(), csIndices.size());
 }
 
+void myAppClass::BuildMaterial()
+{
+	auto mat = std::make_unique<Material>();
+	
+	// Material 2
+	mat->Name = "material1";
+	mat->MatCBIndex = 0;
+	mat->NumFrameDirty = gNumFrameResourcesCount;
+	mat->DiffuseAlbedo = XMFLOAT4(0.5f, 0.52f, 0.5f, 1.0f);
+	//mat->DiffuseAlbedo = XMFLOAT4(1.0f, 0.4f, 1.0f, 1.0f);
+	mat->FresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.01f);
+	mat->Roughness = 0.0;
+
+	mMaterials[mat->Name] = std::move(mat);
+
+	// Material 2
+	auto mat2 = std::make_unique<Material>();
+	mat2->Name = "material2";
+	mat2->MatCBIndex = 1;
+	mat2->NumFrameDirty = gNumFrameResourcesCount;
+	mat2->DiffuseAlbedo = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
+	mat2->FresnelR0 = XMFLOAT3(0.1f, 0.3f, 0.0f);
+	mat2->Roughness = 0.1;
+
+	mMaterials[mat2->Name] = std::move(mat2);
+}
+
 void myAppClass::BuildRenderItems()
 {
 	//auto terrainItem = std::make_unique<RenderItem>();
@@ -509,6 +537,7 @@ void myAppClass::BuildRenderItems()
 	renderItem.world = MathHelper::Identity4x4();
 	renderItem.objCBIndex = 0;
 	renderItem.Geo = mGeometry["terrainGeo"].get();
+	renderItem.Mat = mMaterials["material1"].get();
 	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	
 	//m_AllRenderItems.push_back(std::move(terrainItem));
@@ -517,6 +546,7 @@ void myAppClass::BuildRenderItems()
 	renderItem.world = MathHelper::Identity4x4();
 	renderItem.objCBIndex = 0;
 	renderItem.Geo = mGeometry["CS"].get();
+	renderItem.Mat = mMaterials["material1"].get();
 	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_LINELIST;
 	renderItem.numDirtyVI = 0;	
 	m_AllRenderItems.push_back(renderItem);
@@ -524,16 +554,17 @@ void myAppClass::BuildRenderItems()
 	renderItem.world = MathHelper::Identity4x4();
 	renderItem.objCBIndex = 1;
 	renderItem.Geo = mGeometry["targetPoint"].get();
+	renderItem.Mat = mMaterials["material2"].get();
 	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	renderItem.numDirtyCB = renderItem.numDirtyVI = 0;
-
 	m_AllRenderItems.push_back(renderItem);
+
 	renderItem.world = MathHelper::Identity4x4();
 	renderItem.objCBIndex = 0;
 	renderItem.Geo = mGeometry["Box"].get();
-	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_LINELIST;
+	renderItem.Mat = mMaterials["material2"].get();
+	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	renderItem.numDirtyCB = renderItem.numDirtyVI = 0;
-
 	m_AllRenderItems.push_back(renderItem);
 }
 
@@ -682,20 +713,20 @@ void myAppClass::UpdateMaterialCB()
 {
 	auto currMatCB = m_CurrentFrameResource->materialCB.get();
 
-	for (size_t i = 0; i < m_AllRenderItems.size(); i++)
+	for (auto& e: mMaterials)
 	{
-		if (m_AllRenderItems.at(i).numDirtyMatCB > 0)
-		{
-			
+		Material* mat = e.second.get();
+		if (mat->NumFrameDirty>0)
+		{			
 			MaterialConstants matCB;
 
-			matCB.DiffuseAlbedo = m_AllRenderItems.at(i).DiffuseAlbedo;
-			matCB.FresnelR0 = m_AllRenderItems.at(i).FresnelR0;
-			matCB.Roughness = m_AllRenderItems.at(i).Roughness;
+			matCB.DiffuseAlbedo = mat->DiffuseAlbedo;
+			matCB.FresnelR0 = mat->FresnelR0;
+			matCB.Roughness = mat->Roughness;
 
-			currMatCB->CopyData(m_AllRenderItems.at(i).matIndex , matCB);
+			currMatCB->CopyData(mat->MatCBIndex , matCB);
 
-			m_AllRenderItems.at(i).numDirtyMatCB--; // Обновили Material Const Buffer для текущего FrameResource;
+			mat->NumFrameDirty--; // Обновили Material Const Buffer для текущего FrameResource;
 		}
 	}
 }
@@ -736,7 +767,7 @@ void myAppClass::UpdatePassCB()
 	XMVECTOR lightDir = XMVectorSet(-0.5, -1, 0, 0);
 
 	XMStoreFloat3(&mMainPassCB.Lights[0].Direction, lightDir);
-	mMainPassCB.Lights[0].Strength = { 1.0f, 1.0f, 1.0f };
+	mMainPassCB.Lights[0].Strength = { 0.5f, 0.5f, 0.5f };
 
 	auto currPassCB = m_CurrentFrameResource->passCB.get();
 	currPassCB->CopyData(0, mMainPassCB);

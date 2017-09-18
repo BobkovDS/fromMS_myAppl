@@ -73,28 +73,21 @@ public:
 struct RenderItem
 {
 	DirectX::XMFLOAT4X4 world = MathHelper::Identity4x4();
-	int numDirtyCB = gNumFrameResourcesCount; // dirty flag for perConstaBuffer
-	int numDirtyMatCB = gNumFrameResourcesCount; // dirty flag for Material ConstantBuffer
+	int numDirtyCB = gNumFrameResourcesCount; // dirty flag for perConstaBuffer	
 	int numDirtyVI = gNumFrameResourcesCount; // dirty flag for Vertices/Indices
 	
-
 	UINT objCBIndex = 1;
-	UINT matIndex = 0;
+	
 	D3D12_PRIMITIVE_TOPOLOGY primitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
 	MeshGeometry* Geo = nullptr;
+	Material* Mat = nullptr;
 
 	UINT IndexCount = 0;
 	UINT VertexCount = 0;
 	UINT StartIndexLocation = 0;
 	int BaseVertexLocation = 0;
-
-	//Material
-	DirectX::XMFLOAT4 DiffuseAlbedo = { 1.0f, 0.0f, 1.0f, 1.0f };
-	DirectX::XMFLOAT3 FresnelR0 = { 0.01f, 0.01f, 0.01f };
-	float Roughness = 0.25f;
-
-
+		
 };
 
 class myAppClass : public Cmn3DApp
@@ -121,6 +114,8 @@ private:
 	std::vector<D3D12_INPUT_ELEMENT_DESC> m_InputLayout;
 	std::unique_ptr< MeshGeometry> m_box = nullptr; 
 	std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> mGeometry;
+	std::unordered_map<std::string, std::unique_ptr<Material>> mMaterials;
+
 	std::vector<Vertex> m_vertices;
 	std::vector<uint16_t> m_indices;
 
@@ -166,6 +161,7 @@ private:
 	void BuildShadersAndInputLayout();
 	void BuildBoxGeometry();
 	void BuildGeometry();
+	void BuildMaterial();
 	void BuildRenderItems();
 	void BuildPSO();
 	

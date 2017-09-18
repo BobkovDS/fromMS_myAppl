@@ -19,6 +19,19 @@ struct Light
 	float lightType;
 };
 
+struct Material
+{
+	std::string Name;
+	int MatCBIndex = -1;
+
+	int NumFrameDirty ;
+
+	//Material Constant Buffer data
+	DirectX::XMFLOAT4 DiffuseAlbedo = { 0.5f, 0.5f, 0.5f, 1.0f };
+	DirectX::XMFLOAT3 FresnelR0 = { 0.1f, 0.51f, 0.1f };
+	float Roughness = 0.1f;	
+	DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();
+};
 
 struct ObjectContants
 {
@@ -42,7 +55,7 @@ struct PassConstants
 	float TotalTime = 0.0f;
 	float DeltaTime = 0.0f;
 
-	DirectX::XMFLOAT4 AmbientLight = { 0.0f, 0.0f, 0.0f, 1.0f };
+	DirectX::XMFLOAT4 AmbientLight = { 0.89f, 0.84f, 0.72f, 1.0f };
 
 	// Indices [0, NUM_DIR_LIGHTS) are directional lights;
 	// indices [NUM_DIR_LIGHTS, NUM_DIR_LIGHTS+NUM_POINT_LIGHTS) are point lights;
@@ -54,9 +67,9 @@ struct PassConstants
 
 struct MaterialConstants
 {
-	DirectX::XMFLOAT4 DiffuseAlbedo = { 0.5f, 0.5f, 0.5f, 1.0f };
-	DirectX::XMFLOAT3 FresnelR0 = { 0.1f, 0.51f, 0.1f };
-	float Roughness = 0.1f;
+	DirectX::XMFLOAT4 DiffuseAlbedo;
+	DirectX::XMFLOAT3 FresnelR0;
+	float Roughness ;
 
 	// Used in texture mapping.
 	DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();
