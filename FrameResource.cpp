@@ -8,6 +8,7 @@ FrameResource::FrameResource(ID3D12Device* device, UINT passCount, UINT objectCo
 
 	passCB = std::make_unique<UploadBuffer<PassConstants>>(device, passCount, true);
 	perObjectCB = std::make_unique<UploadBuffer<ObjectContants>>(device, objectCount, true);
+	materialCB = std::make_unique<UploadBuffer<MaterialConstants>>(device, materialCount, true);
 
 	vertices = std::make_unique<UploadBuffer<Vertex>>(device, VerticesCount, false);
 	indices = std::make_unique<UploadBuffer<UINT32>>(device, IndicesCount, false);

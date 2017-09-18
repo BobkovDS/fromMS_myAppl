@@ -1,11 +1,14 @@
 #pragma once
 #include <vector>
 #include <array>
+#include <DirectXMath.h>
+#include <DirectXPackedVector.h>
 
 #define accuracy  0.000001f
 
 struct VertexModelLoader {
 	float x, y, z;	
+	DirectX::XMFLOAT3 normal = DirectX::XMFLOAT3(0,0,0);
 
 	bool operator != (const VertexModelLoader &point) const {
 		//return (this->x != point.x || this->y != point.y || this->z != point.z);

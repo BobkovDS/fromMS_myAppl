@@ -89,8 +89,8 @@ void myAppClass::Initialize()
 	
 	mPhi = 34;// 5.0f;
 	mTheta = 78;// 1.5f*3.14f;
-	mThetaCamera = 36;
-	mPhiCamera = -466;
+	mThetaCamera = 97;
+	mPhiCamera = -500;
 	mRadius = 69.5f;
 	mRadiusCamera = mRadius;
 
@@ -120,7 +120,7 @@ void myAppClass::BuildFrameResourcse()
 {
 	UINT passcount = 1;
 	UINT objectCount = 2;
-	UINT materialCount = 0;
+	UINT materialCount = 1;
 
 	for (int i = 0; i < gNumFrameResourcesCount; i++)
 	{
@@ -194,7 +194,7 @@ void myAppClass::Draw()
 
 	auto passCB = m_CurrentFrameResource->passCB->Resource();
 
-	m_CmdList->SetGraphicsRootConstantBufferView(1, passCB->GetGPUVirtualAddress());
+	m_CmdList->SetGraphicsRootConstantBufferView(2, passCB->GetGPUVirtualAddress());
 	
 	DrawRenderItems(m_CmdList.Get(), &m_AllRenderItems);
 
@@ -213,8 +213,10 @@ void myAppClass::Draw()
 void myAppClass::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::vector<RenderItem>* rItems)
 {
 	UINT objCBByteSize = CalcConstantBufferByteSize(sizeof(ObjectContants));
+	UINT matCBByteSize = CalcConstantBufferByteSize(sizeof(MaterialConstants));
 	
 	auto objectCB = m_CurrentFrameResource->perObjectCB->Resource();
+	auto matCB = m_CurrentFrameResource->materialCB->Resource();
 	
 	for (size_t i = 0; i < rItems->size(); i++)
 	{
@@ -225,8 +227,10 @@ void myAppClass::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::vector
 		cmdList->IASetPrimitiveTopology(ri.primitiveType);
 
 		D3D12_GPU_VIRTUAL_ADDRESS objCBAddress = objectCB->GetGPUVirtualAddress() + ri.objCBIndex*objCBByteSize;
+		D3D12_GPU_VIRTUAL_ADDRESS objMatCBAddress = matCB->GetGPUVirtualAddress() + ri.matIndex*matCBByteSize;
 
 		cmdList->SetGraphicsRootConstantBufferView(0, objCBAddress);
+		cmdList->SetGraphicsRootConstantBufferView(1, objMatCBAddress);
 
 		UINT indexCount = ri.Geo->DrawArgs["grid"].IndexCount;
 		UINT startIndex= ri.Geo->DrawArgs["grid"].StartIndexLocation;
@@ -248,6 +252,7 @@ void myAppClass::Update()
 	UpdateCamera();
 	UpdatePassCB();
 	UpdateCB();
+	UpdateMaterialCB();
 	UpdateGeometry();
 }
 
@@ -321,7 +326,7 @@ void myAppClass::BuildRootSignature()
 	ThrowIfFailed(m_device->CreateRootSignature(0, serializedRootSig->GetBufferPointer(), serializedRootSig->GetBufferSize(), IID_PPV_ARGS(&m_RootSignature)));
 	*/
 
-	CD3DX12_ROOT_PARAMETER slotParametr[2];
+	CD3DX12_ROOT_PARAMETER slotParametr[3];
 
 	CD3DX12_DESCRIPTOR_RANGE cbvTable;
 	cbvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
@@ -329,8 +334,9 @@ void myAppClass::BuildRootSignature()
 
 	slotParametr[0].InitAsConstantBufferView(0);
 	slotParametr[1].InitAsConstantBufferView(1);
+	slotParametr[2].InitAsConstantBufferView(2);
 
-	CD3DX12_ROOT_SIGNATURE_DESC rootDecs(2, slotParametr, 0, nullptr,D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	CD3DX12_ROOT_SIGNATURE_DESC rootDecs(3, slotParametr, 0, nullptr,D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	ThrowIfFailed(D3D12SerializeRootSignature(&rootDecs, D3D_ROOT_SIGNATURE_VERSION_1, &serializedRootSig, &error));
 
@@ -347,7 +353,7 @@ void myAppClass::BuildShadersAndInputLayout()
 	m_InputLayout = 
 	{
 		{"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0},
-		{"COLOR",0,DXGI_FORMAT_R32G32B32A32_FLOAT,0,12,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0}
+		{"NORMAL",0,DXGI_FORMAT_R32G32B32_FLOAT,0,12,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0}
 	};
 }
 
@@ -428,11 +434,13 @@ void myAppClass::BuildGeometry()
 
 		int VertexCount = ModelLoader.GetVectorSizeV();
 
+		ModelLoader.CalculateNormal();
+
 		ModelLoader.SetToBeginV();
 		for (int i = 0; i < VertexCount; i++)
 		{
 			VertexModelLoader tmpVert = ModelLoader.GetNextV();
-			tpVertices.push_back(Vertex({ XMFLOAT3(tmpVert.x, tmpVert.y , tmpVert.z), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) }));
+			tpVertices.push_back(Vertex({ XMFLOAT3(tmpVert.x, tmpVert.y , tmpVert.z),  tmpVert.normal }));
 		}
 
 		int IndexCount = ModelLoader.GetVectorSizeI();
@@ -450,16 +458,17 @@ void myAppClass::BuildGeometry()
 	{
 		ModelLoaderClass ModelLoader;
 		ModelLoader.LoadModelFromFile(L"worldBox.obj");
-
+		ModelLoader.CalculateNormal();
 		int VertexCount = ModelLoader.GetVectorSizeV();
-
+		
 		tpVertices.clear();
 		tpIindices.clear();
 		ModelLoader.SetToBeginV();
+		
 		for (int i = 0; i < VertexCount; i++)
 		{
 			VertexModelLoader tmpVert = ModelLoader.GetNextV();
-			tpVertices.push_back(Vertex({ XMFLOAT3(tmpVert.x, tmpVert.y , tmpVert.z), XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f) }));
+			tpVertices.push_back(Vertex({ XMFLOAT3(tmpVert.x, tmpVert.y , tmpVert.z), tmpVert.normal }));
 		}
 
 		int IndexCount = ModelLoader.GetVectorSizeI();
@@ -477,10 +486,10 @@ void myAppClass::BuildGeometry()
 	// -------------------     Create Geometry entry for Coordinate system
 
 	std::array<Vertex, 4> csVertices = {
-		Vertex({ XMFLOAT3{ 0.0f, 0.0f, 0.0f }, XMFLOAT4{ 1.0f, 0, 0, 1.0f } }),
-		Vertex({ XMFLOAT3{ 10.0f, 0.0f, 0.0f }, XMFLOAT4{ 1.0f, 0, 0, 1.0f } }),
-		Vertex({ XMFLOAT3{ 0.0f, 10.0f, 0.0f }, XMFLOAT4{ 0, 1.f, 0,  1.0f } }),
-		Vertex({ XMFLOAT3{ 0.0f, 0.0f, 10.0f }, XMFLOAT4{ 0, 0, 1.0f, 1.0f } })
+		Vertex({ XMFLOAT3{ 0.0f, 0.0f, 0.0f }, XMFLOAT3{ 0.0f, 0, 0 } }),
+		Vertex({ XMFLOAT3{ 10.0f, 0.0f, 0.0f }, XMFLOAT3{ 1.0f, 0, 0 } }),
+		Vertex({ XMFLOAT3{ 0.0f, 10.0f, 0.0f }, XMFLOAT3{ 0, 1.f, 0 } }),
+		Vertex({ XMFLOAT3{ 0.0f, 0.0f, 10.0f }, XMFLOAT3{ 0, 0, 1.0f} })
 	};
 
 	std::array<UINT16, 6> csIndices = {
@@ -575,7 +584,7 @@ void myAppClass::UpdateGeometry()
 		//ModelLoader.GenerateDelone(N, FlipLevel);
 		//ModelLoader.LoadModelFromFile(L"PlainModel.obj");
 		ModelLoader.LoadModelFromFile(L"terrain.obj"); 
-
+		ModelLoader.CalculateNormal();
 		int VertexCount = ModelLoader.GetVectorSizeV();
 
 		ModelLoader.SetToBeginV();
@@ -584,7 +593,7 @@ void myAppClass::UpdateGeometry()
 			VertexModelLoader tmpVert = ModelLoader.GetNextV();
 			//tmpVert.z = tmpVert.y;// / VertexCount;
 			//tmpVert.y = 0 + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (1 - 0)));;
-			m_vertices.push_back(Vertex({ XMFLOAT3(tmpVert.x, tmpVert.y, tmpVert.z), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) }));
+			m_vertices.push_back(Vertex({ XMFLOAT3(tmpVert.x, tmpVert.y, tmpVert.z), tmpVert.normal }));
 		}
 
 		int IndexCount = ModelLoader.GetVectorSizeI();
@@ -669,6 +678,28 @@ void myAppClass::UpdateCB()
 	}
 }
 
+void myAppClass::UpdateMaterialCB()
+{
+	auto currMatCB = m_CurrentFrameResource->materialCB.get();
+
+	for (size_t i = 0; i < m_AllRenderItems.size(); i++)
+	{
+		if (m_AllRenderItems.at(i).numDirtyMatCB > 0)
+		{
+			
+			MaterialConstants matCB;
+
+			matCB.DiffuseAlbedo = m_AllRenderItems.at(i).DiffuseAlbedo;
+			matCB.FresnelR0 = m_AllRenderItems.at(i).FresnelR0;
+			matCB.Roughness = m_AllRenderItems.at(i).Roughness;
+
+			currMatCB->CopyData(m_AllRenderItems.at(i).matIndex , matCB);
+
+			m_AllRenderItems.at(i).numDirtyMatCB--; // Обновили Material Const Buffer для текущего FrameResource;
+		}
+	}
+}
+
 void myAppClass::UpdatePassCB()
 {
 	{
@@ -702,9 +733,10 @@ void myAppClass::UpdatePassCB()
 	//mMainPassCB.AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
 
 	//XMVECTOR lightDir = -MathHelper::SphericalToCartesian(1.0f, mSunTheta, mSunPhi);
+	XMVECTOR lightDir = XMVectorSet(-0.5, -1, 0, 0);
 
-	//XMStoreFloat3(&mMainPassCB.Lights[0].Direction, lightDir);
-	//mMainPassCB.Lights[0].Strength = { 1.0f, 1.0f, 0.9f };
+	XMStoreFloat3(&mMainPassCB.Lights[0].Direction, lightDir);
+	mMainPassCB.Lights[0].Strength = { 1.0f, 1.0f, 1.0f };
 
 	auto currPassCB = m_CurrentFrameResource->passCB.get();
 	currPassCB->CopyData(0, mMainPassCB);
@@ -767,6 +799,7 @@ void myAppClass::BuildPSO()
 	psoDesc.VS = { reinterpret_cast<BYTE*>(m_vsByteCode->GetBufferPointer()), m_vsByteCode->GetBufferSize() };
 	psoDesc.PS = { reinterpret_cast<BYTE*>(m_psByteCode->GetBufferPointer()), m_psByteCode->GetBufferSize() };
 	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	ModeFlag = true;
 	if (!ModeFlag)
 		psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
 	else 

@@ -5,6 +5,9 @@
 #include "ctime"
 
 using namespace std;
+using namespace DirectX;
+
+
 ModelLoaderClass::ModelLoaderClass()
 {
 }
@@ -526,4 +529,49 @@ void ModelLoaderClass::GenerateDelone(int iN, int FlipLevel)
 void ModelLoaderClass::LoadHighMap(std::string fileNanme)
 {
 
+}
+
+void ModelLoaderClass::CalculateNormal(size_t clcNormalMode)
+{
+	DirectX::XMVECTOR tmpNormal;
+
+	if (clcNormalMode == 0) //Mode 0 - Vertext Normal is average normale for all Faceplates for this vertext
+	{		
+		for (UINT32 i = 0; i < indices.size()-2; i++)
+		{
+			int i1 = i, i2 = i + 1, i3 = i + 2;
+			
+			VertexModelLoader v1 = vertices.at(indices.at(i1));
+			VertexModelLoader v2 = vertices.at(indices.at(i2));
+			VertexModelLoader v3 = vertices.at(indices.at(i3));
+			
+			VertexModelLoader a = v2 - v1;
+			VertexModelLoader b = v3 - v1;
+
+			VertexModelLoader n = a*b;
+			
+			// Add new normal to V1 normal
+			tmpNormal = XMLoadFloat3(&v1.normal);
+			tmpNormal += XMVectorSet(n.x, n.y, n.z, 0);			
+			XMStoreFloat3(&vertices.at(indices.at(i1)).normal, tmpNormal);
+
+			// Add new normal to V2 normal
+			tmpNormal = XMLoadFloat3(&v2.normal);
+			tmpNormal += XMVectorSet(n.x, n.y, n.z, 0);			
+			XMStoreFloat3(&vertices.at(indices.at(i2)).normal, tmpNormal);
+
+			// Add new normal to V3 normal
+			tmpNormal = XMLoadFloat3(&v3.normal);
+			tmpNormal += XMVectorSet(n.x, n.y, n.z, 0);
+			XMStoreFloat3(&vertices.at(indices.at(i3)).normal, tmpNormal);
+			i += 2;
+		}
+
+		for (UINT32 i = 0; i < vertices.size(); i++)
+		{
+			tmpNormal = XMLoadFloat3(&vertices.at(i).normal);
+			tmpNormal = XMVector3Normalize(tmpNormal);
+			XMStoreFloat3(&vertices.at(i).normal, tmpNormal);
+		}
+	}
 }

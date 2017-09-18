@@ -6,6 +6,19 @@
 #include <vector>
 #include <array>
 
+#define MaxLights 10
+
+struct Light
+{
+	DirectX::XMFLOAT3 Strength;
+	float falloffStart;
+	DirectX::XMFLOAT3 Direction;
+	float falloffEnd;
+	DirectX::XMFLOAT3 Position;
+	float spotPower;
+	float lightType;
+};
+
 
 struct ObjectContants
 {
@@ -35,14 +48,15 @@ struct PassConstants
 	// indices [NUM_DIR_LIGHTS, NUM_DIR_LIGHTS+NUM_POINT_LIGHTS) are point lights;
 	// indices [NUM_DIR_LIGHTS+NUM_POINT_LIGHTS, NUM_DIR_LIGHTS+NUM_POINT_LIGHT+NUM_SPOT_LIGHTS)
 	// are spot lights for a maximum of MaxLights per object.
-	//Light Lights[MaxLights];
+	Light Lights[MaxLights];
 };
+
 
 struct MaterialConstants
 {
-	DirectX::XMFLOAT4 DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
-	DirectX::XMFLOAT3 FresnelR0 = { 0.01f, 0.01f, 0.01f };
-	float Roughness = 0.25f;
+	DirectX::XMFLOAT4 DiffuseAlbedo = { 0.5f, 0.5f, 0.5f, 1.0f };
+	DirectX::XMFLOAT3 FresnelR0 = { 0.1f, 0.51f, 0.1f };
+	float Roughness = 0.1f;
 
 	// Used in texture mapping.
 	DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();
@@ -51,7 +65,7 @@ struct MaterialConstants
 struct Vertex
 {
 	DirectX::XMFLOAT3 Pos;
-	DirectX::XMFLOAT4 Color;
+	DirectX::XMFLOAT3 Normal;
 };
 
 
