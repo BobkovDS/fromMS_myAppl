@@ -16,6 +16,7 @@ struct Light
 	float3 Position;
 	float SpotPower;
 	float lightType;
+	float lightTurnOn;
 };
 
 float CalcAttenuation(float d, float falloffStart, float falloffEnd)
@@ -86,9 +87,16 @@ float4 ComputeLighting(Light glights[MaxLights], Material mat, float3 pos, float
 	float3 result = 0.0f;
 	for (int i=0; i<MaxLights; i++)
 	{
-		if (glights[i].lightType == 1)
+		if (glights[i].lightTurnOn == 1)
 		{
-			result = ComputeDirectionalLight(glights[i], mat, normal, toEye);
+			if (glights[i].lightType == 1)
+			{
+				result += ComputeDirectionalLight(glights[i], mat, normal, toEye);
+			}
+			else if (glights[i].lightType == 2)
+			{
+				result += ComputePointLight(glights[i], mat, pos, normal, toEye);
+			} 
 		}
 	}
 	return float4(result, 0.0f);

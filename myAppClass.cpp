@@ -61,7 +61,7 @@ void myAppClass::onMouseMove(WPARAM btnState, int x, int y)
 	}
 }
 
-void myAppClass::onKeyPress(WPARAM btnState)
+void myAppClass::onKeyDown(WPARAM btnState)
 {	
 	switch (btnState)
 	{
@@ -73,6 +73,7 @@ void myAppClass::onKeyPress(WPARAM btnState)
 	case VK_NUMPAD2: lightRotateUD = -1; return;
 	case VK_NUMPAD4: lightRotateLR = 1; return;
 	case VK_NUMPAD6: lightRotateLR = -1; return;
+	case VK_NUMPAD0: lightTurnOnOff = 1; return;
 	}
 }
 
@@ -546,6 +547,35 @@ void myAppClass::BuildGeometry()
 		}
 		CreateConstGeometry("Dlight", tpVertices.data(), tpIindices.data(), sizeof(Vertex), sizeof(UINT16), tpVertices.size(), tpIindices.size());
 	}
+
+	// ------------------- Create Geometry entry for Point Light 	
+	{
+		ModelLoaderClass ModelLoader;
+		ModelLoader.LoadModelFromFile(L"PointLight.obj");
+		ModelLoader.CalculateNormal();
+		int VertexCount = ModelLoader.GetVectorSizeV();
+
+		tpVertices.clear();
+		tpIindices.clear();
+		ModelLoader.SetToBeginV();
+
+		for (int i = 0; i < VertexCount; i++)
+		{
+			VertexModelLoader tmpVert = ModelLoader.GetNextV();
+			tpVertices.push_back(Vertex({ XMFLOAT3(tmpVert.x, tmpVert.y , tmpVert.z), tmpVert.normal }));
+		}
+
+		int IndexCount = ModelLoader.GetVectorSizeI();
+
+		ModelLoader.SetToBeginI();
+		for (int i = 0; i < IndexCount; i++)
+		{
+			uint16_t tmpIndex = ModelLoader.GetNextI();
+			tpIindices.push_back(tmpIndex);
+
+		}
+		CreateConstGeometry("Plight", tpVertices.data(), tpIindices.data(), sizeof(Vertex), sizeof(UINT16), tpVertices.size(), tpIindices.size());
+	}
 }
 
 void myAppClass::BuildMaterial()
@@ -586,7 +616,7 @@ void myAppClass::BuildMaterial()
 	mMaterials[mat3->Name] = std::move(mat3);
 
 
-	// Material 3
+	// Material 4
 	auto mat4 = std::make_unique<Material>();
 	mat4->Name = "LightUnSelected";
 	mat4->MatCBIndex = 3;
@@ -596,6 +626,18 @@ void myAppClass::BuildMaterial()
 	mat4->Roughness = 1.0f;
 
 	mMaterials[mat4->Name] = std::move(mat4);
+
+
+	// Material 5
+	auto mat5 = std::make_unique<Material>();
+	mat5->Name = "LightTurnOff";
+	mat5->MatCBIndex = 4;
+	mat5->NumFrameDirty = gNumFrameResourcesCount;
+	mat5->DiffuseAlbedo = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
+	mat5->FresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.1f);
+	mat5->Roughness = 0.1f;
+
+	mMaterials[mat5->Name] = std::move(mat5);
 
 }
 
@@ -657,6 +699,17 @@ void myAppClass::BuildRenderItems()
 	renderItem.numDirtyCB = renderItem.numDirtyVI = 0;
 	m_AllRenderItems.push_back(renderItem);
 	BuildLight(0, m_AllRenderItems.size() - 1);	
+		
+	renderItem.world = MathHelper::Identity4x4();
+	renderItem.objCBIndex = 4;
+	renderItem.Geo = mGeometry["Plight"].get();
+	renderItem.Mat = mMaterials["LightUnSelected"].get();
+	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_POINTLIST;
+	renderItem.numDirtyCB = renderItem.numDirtyVI = 0;
+	m_AllRenderItems.push_back(renderItem);
+	BuildLight(1, m_AllRenderItems.size() - 1);
+	
 }
 
 void myAppClass::BuildLight(int lightType, int renderItemID)
@@ -677,6 +730,26 @@ void myAppClass::BuildLight(int lightType, int renderItemID)
 		mLights.push_back(tmpLight);
 		lightCount++;
 	}
+	else if (lightType == 1) // Create Point Light
+	{
+		CPULight tmpLight;
+		tmpLight.lightType = 1;
+		tmpLight.mPhi = 0;
+		tmpLight.mTheta = 0;
+		tmpLight.mRadius = 0;
+		tmpLight.Position = XMFLOAT3(0, 0, 0);
+		tmpLight.Strength = XMFLOAT3(0.8f, 0.8f, 0.8f);
+		tmpLight.mRadius = 50.0f;
+		tmpLight.falloffStart = 1;
+		tmpLight.falloffEnd = tmpLight.mRadius;		
+		tmpLight.renderItemID = renderItemID;
+
+		tmpLight.needToUpdateRI = 1;
+		tmpLight.needToUpdateLight = 1;
+		mLights.push_back(tmpLight);
+		lightCount++;
+	}
+		
 }
 
 // ------------------------------------------------------------------------------------------------------- Inicialization --------------
@@ -686,9 +759,11 @@ void myAppClass::InitLight()
 	// init Light position
 	mLights.at(0).Position = XMFLOAT3(10, 40, 0);
 	mLights.at(1).Position = XMFLOAT3(0, 20, 0);
+	mLights.at(2).Position = XMFLOAT3(10, 20, 0);
 
 	mLights.at(0).Strength = XMFLOAT3(0.8f, 0.8f, 0.8f);
-	mLights.at(1).Strength = XMFLOAT3(0.3f, 0.3f, 0.3f);
+	mLights.at(1).Strength = XMFLOAT3(0.8f, 0.2f, 0.2f);
+	mLights.at(2).Strength = XMFLOAT3(0.5f, 0.5f, 0.7f);
 }
 
 // --------------------------------------------------------------------------------------------------------- Updateting ----------------
@@ -846,15 +921,27 @@ void myAppClass::UpdateLightToRenderIntem()
 			mLights.at(i).needToUpdateRI = 0;
 		}
 		
+		
+		if (lightTurnOnOff)
+		{
+			lightTurnOnOff = 0;
+			mLights.at(lightIndexSelID).turnOn = !mLights.at(lightIndexSelID).turnOn;
+		}
+		
 		// highlighted by Material selected Light
 		if (lightIndexSelID == i)
 		{
 			m_AllRenderItems.at(mLights.at(i).renderItemID).Mat = mMaterials["LightSelected"].get();
 		}
-		else
+		else if (mLights.at(i).turnOn) // If Light is not selected, but TurnOn
 		{
 			m_AllRenderItems.at(mLights.at(i).renderItemID).Mat = mMaterials["LightUnSelected"].get();
-		}		
+		}	
+		else // If Light is not selected and TurnOff
+		{
+			m_AllRenderItems.at(mLights.at(i).renderItemID).Mat = mMaterials["LightTurnOff"].get();
+		}
+
 	}
 }
 void myAppClass::UpdateCB()
@@ -950,7 +1037,11 @@ void myAppClass::UpdatePassCB()
 
 			XMStoreFloat3(&mMainPassCB.Lights[i].Direction, lightDir);
 			mMainPassCB.Lights[i].Strength = mLights.at(i).Strength;
+			mMainPassCB.Lights[i].Position = mLights.at(i).Position;
+			mMainPassCB.Lights[i].falloffStart = mLights.at(i).falloffStart;
+			mMainPassCB.Lights[i].falloffEnd = mLights.at(i).falloffEnd;			
 			mMainPassCB.Lights[i].lightType = mLights.at(i).lightType + 1;
+			mMainPassCB.Lights[i].turnOn = mLights.at(i).turnOn;
 			mLights.at(i).needToUpdateLight = 0;
 		}
 

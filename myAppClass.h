@@ -140,6 +140,7 @@ private:
 
 	int lightRotateLR = 0;
 	int lightRotateUD = 0;
+	bool lightTurnOnOff = 0;
 	
 	DirectX::XMFLOAT3 mEyePos;// = { 0.0f, 0.0f, 0.0f };
 	DirectX::XMFLOAT4X4 mView;// = MathHelper::Identity4x4();
@@ -153,8 +154,8 @@ private:
 
 	virtual void onMouseDown(WPARAM btnState, int x, int y) override;
 	virtual void onMouseUp(WPARAM btnState, int x, int y) override;
-	virtual void onMouseMove(WPARAM btnState, int x, int y) override;
-	virtual void onKeyPress(WPARAM btnState) override;
+	virtual void onMouseMove(WPARAM btnState, int x, int y) override;	
+	virtual void onKeyDown(WPARAM btnState) override;
 	virtual void onKeyUp(WPARAM btnState) override;
 
 	void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::vector<RenderItem>* rItems);

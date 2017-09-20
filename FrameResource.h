@@ -17,6 +17,9 @@ struct Light
 	DirectX::XMFLOAT3 Position;
 	float spotPower;
 	float lightType;
+	float turnOn; // to find check it for int16 or something like that
+	float dummy2;
+	float dummy3;
 };
 
 struct CPULight
@@ -39,7 +42,7 @@ struct CPULight
 	float falloffEnd;	
 	float spotPower;
 	int lightType = 0; // 0 - Directional, 1 - Point, 2 - Spotlight;
-	
+	bool turnOn = 1;
 	int renderItemID = -1; //To specify which Render Items is used to draw this light
 };
 

@@ -65,8 +65,8 @@ LRESULT Cmn3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			FaceCountToDraw--;
 			if (FaceCountToDraw < 1) FaceCountToDraw = 1;
 		}
-		else if ((wParam == 'A') || (wParam == 'D') ||( wParam == 'W') ||( wParam == 'S')) 	{ onKeyPress(wParam); }
-		else if ((wParam == VK_NUMPAD8) || (wParam == VK_NUMPAD2) || (wParam == VK_NUMPAD4) || (wParam == VK_NUMPAD6)) { onKeyPress(wParam); }
+		else if ((wParam == 'A') || (wParam == 'D') ||( wParam == 'W') ||( wParam == 'S')) 	{ onKeyDown(wParam); }
+		else if ((wParam == VK_NUMPAD8) || (wParam == VK_NUMPAD2) || (wParam == VK_NUMPAD4) || (wParam == VK_NUMPAD6) || (wParam == VK_NUMPAD0) ) { onKeyDown(wParam); }
 		return 0;
 
 	case WM_KEYUP:
