@@ -84,8 +84,13 @@ float3 ComputePointLight(Light L, Material mat, float3 pos, float3 normal, float
 float4 ComputeLighting(Light glights[MaxLights], Material mat, float3 pos, float3 normal, float3 toEye)
 {
 	float3 result = 0.0f;
-
-	result = ComputeDirectionalLight(glights[0], mat, normal, toEye);
-
+	for (int i=0; i<MaxLights; i++)
+	{
+		if (glights[i].lightType == 1)
+		{
+			result = ComputeDirectionalLight(glights[i], mat, normal, toEye);
+		}
+	}
 	return float4(result, 0.0f);
+	
 }

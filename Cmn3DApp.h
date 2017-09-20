@@ -39,6 +39,7 @@ protected: //Child class also can use it
 	bool ModeFlag = false;
 	int Mode = 0;
 	bool renderNewTrianles = false;
+
 	bool renderPrevTiangles = false;
 	bool newFliplevel = false;
 	bool prevFlipLevel = false;
@@ -54,6 +55,7 @@ protected: //Child class also can use it
 	int FlipLevel;
 	int m_width = 100;
 	int m_height;
+	int lightIndexSelID = 0;
 
 	DXGI_FORMAT m_BackBufferFormat;
 	DXGI_FORMAT m_DepthStencilFormat;

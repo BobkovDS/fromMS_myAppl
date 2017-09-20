@@ -69,6 +69,10 @@ void myAppClass::onKeyPress(WPARAM btnState)
 	//case 'D': moveLR = 1; return;
 	case 'W': moveFB =1 ; return;
 	case 'S': moveFB =-1 ; return;
+	case VK_NUMPAD8: lightRotateUD = 1; return;
+	case VK_NUMPAD2: lightRotateUD = -1; return;
+	case VK_NUMPAD4: lightRotateLR = 1; return;
+	case VK_NUMPAD6: lightRotateLR = -1; return;
 	}
 }
 
@@ -80,6 +84,10 @@ void myAppClass::onKeyUp(WPARAM btnState)
 	//case 'D': moveLR = 0; return;
 	case 'W': moveFB = 0; return;
 	case 'S': moveFB = 0; return;
+	case VK_NUMPAD8: lightRotateUD = 0; return;
+	case VK_NUMPAD2: lightRotateUD = 0; return;
+	case VK_NUMPAD4: lightRotateLR = 0; return;
+	case VK_NUMPAD6: lightRotateLR = 0; return;
 	}
 }
 
@@ -89,8 +97,8 @@ void myAppClass::Initialize()
 	
 	mPhi = 34;// 5.0f;
 	mTheta = 78;// 1.5f*3.14f;
-	mThetaCamera = 97;
-	mPhiCamera = -500;
+	mThetaCamera = 168;
+	mPhiCamera = -323.5;
 	mRadius = 69.5f;
 	mRadiusCamera = mRadius;
 
@@ -100,15 +108,21 @@ void myAppClass::Initialize()
 	mEyePos.z = mRadius*sin(mTheta / 180 * pi)*cos(mPhi / 180 * pi);
 	mEyePos.y = mRadius*cos(mTheta / 180 * pi);
 
+	mEyePos.x = -11.13f;
+	mEyePos.y = 109.46f;
+	mEyePos.z = -17.621f;
+
 	BuildDescriptorHeaps();
 	BuildConstantBuffer();
 	BuildRootSignature();
 	BuildShadersAndInputLayout();
 	BuildGeometry();	
 	BuildMaterial();
-	BuildRenderItems();
+	BuildRenderItems();	
 	BuildFrameResourcse();
 	BuildPSO();
+
+	InitLight();
 
 	ThrowIfFailed(m_CmdList->Close());
 	ID3D12CommandList* cmdsLists[] = { m_CmdList.Get() };
@@ -120,7 +134,7 @@ void myAppClass::Initialize()
 void myAppClass::BuildFrameResourcse()
 {
 	UINT passcount = 1;
-	UINT objectCount = 2;
+	UINT objectCount = m_AllRenderItems.size();
 	UINT materialCount = mMaterials.size();
 
 	for (int i = 0; i < gNumFrameResourcesCount; i++)
@@ -249,7 +263,10 @@ void myAppClass::Update()
 {		
 	m_iCurrentResourceIndex = (m_iCurrentResourceIndex + 1) % gNumFrameResourcesCount;
 	m_CurrentFrameResource = m_FrameResources.at(m_iCurrentResourceIndex).get();
-		
+	
+	UpdateLight();
+	UpdateLightToRenderIntem();
+
 	UpdateCamera();
 	UpdatePassCB();
 	UpdateCB();
@@ -500,6 +517,35 @@ void myAppClass::BuildGeometry()
 	};
 
 	CreateConstGeometry("CS", &csVertices, &csIndices, sizeof(Vertex), sizeof(UINT16), csVertices.size(), csIndices.size());
+
+	// ------------------- Create Geometry entry for Directional Light 	
+	{
+		ModelLoaderClass ModelLoader;
+		ModelLoader.LoadModelFromFile(L"DirectionalLight.obj");
+		ModelLoader.CalculateNormal();
+		int VertexCount = ModelLoader.GetVectorSizeV();
+
+		tpVertices.clear();
+		tpIindices.clear();
+		ModelLoader.SetToBeginV();
+
+		for (int i = 0; i < VertexCount; i++)
+		{
+			VertexModelLoader tmpVert = ModelLoader.GetNextV();
+			tpVertices.push_back(Vertex({ XMFLOAT3(tmpVert.x, tmpVert.y , tmpVert.z), tmpVert.normal }));
+		}
+
+		int IndexCount = ModelLoader.GetVectorSizeI();
+
+		ModelLoader.SetToBeginI();
+		for (int i = 0; i < IndexCount; i++)
+		{
+			uint16_t tmpIndex = ModelLoader.GetNextI();
+			tpIindices.push_back(tmpIndex);
+
+		}
+		CreateConstGeometry("Dlight", tpVertices.data(), tpIindices.data(), sizeof(Vertex), sizeof(UINT16), tpVertices.size(), tpIindices.size());
+	}
 }
 
 void myAppClass::BuildMaterial()
@@ -527,6 +573,30 @@ void myAppClass::BuildMaterial()
 	mat2->Roughness = 0.1;
 
 	mMaterials[mat2->Name] = std::move(mat2);
+
+	// Material 3
+	auto mat3 = std::make_unique<Material>();
+	mat3->Name = "LightSelected";
+	mat3->MatCBIndex = 2;
+	mat3->NumFrameDirty = gNumFrameResourcesCount;
+	mat3->DiffuseAlbedo = XMFLOAT4(1.0f, 0.3f, 0.3f, 1.0f);
+	mat3->FresnelR0 = XMFLOAT3(0.1f, 0.3f, 0.0f);
+	mat3->Roughness = 1.0f;
+
+	mMaterials[mat3->Name] = std::move(mat3);
+
+
+	// Material 3
+	auto mat4 = std::make_unique<Material>();
+	mat4->Name = "LightUnSelected";
+	mat4->MatCBIndex = 3;
+	mat4->NumFrameDirty = gNumFrameResourcesCount;
+	mat4->DiffuseAlbedo = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
+	mat4->FresnelR0 = XMFLOAT3(0.1f, 0.3f, 0.0f);
+	mat4->Roughness = 1.0f;
+
+	mMaterials[mat4->Name] = std::move(mat4);
+
 }
 
 void myAppClass::BuildRenderItems()
@@ -562,11 +632,66 @@ void myAppClass::BuildRenderItems()
 	renderItem.world = MathHelper::Identity4x4();
 	renderItem.objCBIndex = 0;
 	renderItem.Geo = mGeometry["Box"].get();
-	renderItem.Mat = mMaterials["material2"].get();
+	renderItem.Mat = mMaterials["material1"].get();
 	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_POINTLIST;
 	renderItem.numDirtyCB = renderItem.numDirtyVI = 0;
 	m_AllRenderItems.push_back(renderItem);
+
+	renderItem.world = MathHelper::Identity4x4();
+	renderItem.objCBIndex = 2;
+	renderItem.Geo = mGeometry["Dlight"].get();
+	renderItem.Mat = mMaterials["LightUnSelected"].get();
+	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	//renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_POINTLIST;
+	renderItem.numDirtyCB = renderItem.numDirtyVI = 0;
+	m_AllRenderItems.push_back(renderItem);
+	BuildLight(0, m_AllRenderItems.size() - 1);
+
+	renderItem.world = MathHelper::Identity4x4();
+	renderItem.objCBIndex = 3;
+	renderItem.Geo = mGeometry["Dlight"].get();
+	renderItem.Mat = mMaterials["LightUnSelected"].get();
+	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	//renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_POINTLIST;
+	renderItem.numDirtyCB = renderItem.numDirtyVI = 0;
+	m_AllRenderItems.push_back(renderItem);
+	BuildLight(0, m_AllRenderItems.size() - 1);	
 }
+
+void myAppClass::BuildLight(int lightType, int renderItemID)
+{
+	if (lightType == 0) // Create Directional Light
+	{
+		CPULight tmpLight;
+		tmpLight.mPhi = 0;
+		tmpLight.mTheta = 0;
+		tmpLight.mRadius = 1;
+		tmpLight.Position = XMFLOAT3(0, 0, 0);
+		tmpLight.lightType = 0;
+		tmpLight.Strength = XMFLOAT3(0.8f, 0.8f, 0.8f);		
+		tmpLight.renderItemID = renderItemID;
+		
+		tmpLight.needToUpdateRI = 1;
+		tmpLight.needToUpdateLight = 1;
+		mLights.push_back(tmpLight);
+		lightCount++;
+	}
+}
+
+// ------------------------------------------------------------------------------------------------------- Inicialization --------------
+
+void myAppClass::InitLight()
+{
+	// init Light position
+	mLights.at(0).Position = XMFLOAT3(10, 40, 0);
+	mLights.at(1).Position = XMFLOAT3(0, 20, 0);
+
+	mLights.at(0).Strength = XMFLOAT3(0.8f, 0.8f, 0.8f);
+	mLights.at(1).Strength = XMFLOAT3(0.3f, 0.3f, 0.3f);
+}
+
+// --------------------------------------------------------------------------------------------------------- Updateting ----------------
 
 void myAppClass::UpdateGeometry()
 {
@@ -687,6 +812,51 @@ void myAppClass::UpdateGeometry()
 	
 }
 
+void myAppClass::UpdateLight()
+{
+	if (lightIndexSelID >= lightCount)
+		lightIndexSelID = 0;
+	
+	float dx = 1.0f/10.0f;// / 180.0f*XM_PI;
+	
+	mLights.at(lightIndexSelID).mPhi += dx*lightRotateLR;
+	mLights.at(lightIndexSelID).mTheta += dx*lightRotateUD;
+		
+	mLights.at(lightIndexSelID).needToUpdateRI |= (lightRotateLR != 0) || (lightRotateUD != 0);
+	mLights.at(lightIndexSelID).needToUpdateLight|= mLights.at(lightIndexSelID).needToUpdateRI;
+}
+
+void myAppClass::UpdateLightToRenderIntem()
+{
+	for (size_t i = 0; i < mLights.size(); i++)
+	{
+		if (mLights.at(i).needToUpdateRI)
+		{
+			XMMATRIX tmpMatrix;
+			// not used --- tmpMatrix = XMLoadFloat4x4(&m_AllRenderItems.at(mLights.at(i).renderItemID).world); 
+			
+			tmpMatrix = XMMatrixTranslation(mLights.at(i).Position.x, mLights.at(i).Position.y, mLights.at(i).Position.z);
+			
+			tmpMatrix = XMMatrixRotationRollPitchYaw(0, mLights.at(i).mPhi/180.0f*XM_PI, mLights.at(i).mTheta / 180.0f*XM_PI)*tmpMatrix;
+			//tmpMatrix = (XMMatrixRotationZ(mLights.at(i).mTheta)*XMMatrixRotationY(mLights.at(i).mPhi))*tmpMatrix;
+									
+			XMStoreFloat4x4(&m_AllRenderItems.at(mLights.at(i).renderItemID).world, tmpMatrix);
+			
+			m_AllRenderItems.at(mLights.at(i).renderItemID).numDirtyCB = gNumFrameResourcesCount;
+			mLights.at(i).needToUpdateRI = 0;
+		}
+		
+		// highlighted by Material selected Light
+		if (lightIndexSelID == i)
+		{
+			m_AllRenderItems.at(mLights.at(i).renderItemID).Mat = mMaterials["LightSelected"].get();
+		}
+		else
+		{
+			m_AllRenderItems.at(mLights.at(i).renderItemID).Mat = mMaterials["LightUnSelected"].get();
+		}		
+	}
+}
 void myAppClass::UpdateCB()
 {
 	auto currCBObject = m_CurrentFrameResource->perObjectCB.get();
@@ -764,11 +934,28 @@ void myAppClass::UpdatePassCB()
 	//mMainPassCB.AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
 
 	//XMVECTOR lightDir = -MathHelper::SphericalToCartesian(1.0f, mSunTheta, mSunPhi);
-	XMVECTOR lightDir = XMVectorSet(-0.5, -1, 0, 0);
 
-	XMStoreFloat3(&mMainPassCB.Lights[0].Direction, lightDir);
-	mMainPassCB.Lights[0].Strength = { 0.5f, 0.5f, 0.5f };
+	for (size_t i = 0; i < mLights.size(); i++)
+	{
+		//if (mLights.at(i).needToUpdateLight)
+		{
+			float tmpTheta = 90 + mLights.at(i).mTheta;
+			float tmpPhi = 90 + mLights.at(i).mPhi;
 
+			float x = sin(tmpTheta / 180.0f*XM_PI)*sin(tmpPhi / 180.0f*XM_PI);
+			float z = sin(tmpTheta / 180.0f*XM_PI)*cos(tmpPhi / 180.0f*XM_PI);
+			float y = cos(tmpTheta / 180.0f*XM_PI);
+			
+			XMVECTOR lightDir = XMVectorSet(x,-y,z,0);
+
+			XMStoreFloat3(&mMainPassCB.Lights[i].Direction, lightDir);
+			mMainPassCB.Lights[i].Strength = mLights.at(i).Strength;
+			mMainPassCB.Lights[i].lightType = mLights.at(i).lightType + 1;
+			mLights.at(i).needToUpdateLight = 0;
+		}
+
+		
+	}
 	auto currPassCB = m_CurrentFrameResource->passCB.get();
 	currPassCB->CopyData(0, mMainPassCB);
 }

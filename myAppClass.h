@@ -115,6 +115,7 @@ private:
 	std::unique_ptr< MeshGeometry> m_box = nullptr; 
 	std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> mGeometry;
 	std::unordered_map<std::string, std::unique_ptr<Material>> mMaterials;
+	std::vector<CPULight> mLights;
 
 	std::vector<Vertex> m_vertices;
 	std::vector<uint16_t> m_indices;
@@ -137,11 +138,15 @@ private:
 	int moveUD = 0;	
 	int moveFB = 0;
 
+	int lightRotateLR = 0;
+	int lightRotateUD = 0;
+	
 	DirectX::XMFLOAT3 mEyePos;// = { 0.0f, 0.0f, 0.0f };
 	DirectX::XMFLOAT4X4 mView;// = MathHelper::Identity4x4();
 	DirectX::XMFLOAT4X4 mProj;// = MathHelper::Identity4x4();
 
 	float pi = 3.1415926;
+	size_t lightCount = 0;
 	DirectX::XMFLOAT3 TargetPos;
 
 	BYTE* m_ConstBufferCPUAddress = nullptr;
@@ -163,14 +168,21 @@ private:
 	void BuildGeometry();
 	void BuildMaterial();
 	void BuildRenderItems();
+	void BuildLight(int lightType, int renderItemID);
 	void BuildPSO();
 	
 	void UpdateCamera();
 	void UpdateGeometry();
+	void UpdateLight();
+	void UpdateLightToRenderIntem();
+	void UpdateLightToPassCB();
 	void UpdateCB();
 	void UpdateMaterialCB();
 	void UpdatePassCB();
 	
+	
+	void InitLight();
+
 	//Helper Functions
 	ComPtr<ID3DBlob> CompileShader(const std::wstring& filename, const D3D_SHADER_MACRO* defines, const std::string& entrypoint, const std::string& target);
 	ComPtr<ID3D12Resource> CreateDeafultBuffer(const void* initData, UINT64 byteSize, ComPtr<ID3D12Resource>& uploadBuffer) ;

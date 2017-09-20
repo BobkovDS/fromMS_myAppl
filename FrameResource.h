@@ -19,6 +19,30 @@ struct Light
 	float lightType;
 };
 
+struct CPULight
+{
+	// Struct for using to manipulate Light on CPU (move it, rotate, change Light parametrs). 
+	// Data from this struct will copy to RenderItem - Light (to set position and directioanl) and
+	// copy to ConstantBuffer Per Pass to set light parametrs for each light in lighting colculation
+		
+	bool  needToUpdateRI = false;
+	bool  needToUpdateLight = false;
+
+	float mRadius;
+	float mPhi;
+	float mTheta;
+	
+	DirectX::XMFLOAT3 Strength;		
+	DirectX::XMFLOAT3 Position;
+
+	float falloffStart;
+	float falloffEnd;	
+	float spotPower;
+	int lightType = 0; // 0 - Directional, 1 - Point, 2 - Spotlight;
+	
+	int renderItemID = -1; //To specify which Render Items is used to draw this light
+};
+
 struct Material
 {
 	std::string Name;
