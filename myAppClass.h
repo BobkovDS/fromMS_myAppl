@@ -137,10 +137,17 @@ private:
 	int moveLR = 0;
 	int moveUD = 0;	
 	int moveFB = 0;
-
+	
+	int moveLightLR = 0;
+	int moveLightFB = 0;
+	int moveLightUD = 0;
 	int lightRotateLR = 0;
 	int lightRotateUD = 0;
+	int lightScaleRadius = 0;
+	int lightScaleSpotRadius = 0;
 	bool lightTurnOnOff = 0;
+
+	bool keyPressedCtrl = 0;
 	
 	DirectX::XMFLOAT3 mEyePos;// = { 0.0f, 0.0f, 0.0f };
 	DirectX::XMFLOAT4X4 mView;// = MathHelper::Identity4x4();

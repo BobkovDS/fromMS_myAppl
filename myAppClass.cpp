@@ -69,11 +69,36 @@ void myAppClass::onKeyDown(WPARAM btnState)
 	//case 'D': moveLR = 1; return;
 	case 'W': moveFB =1 ; return;
 	case 'S': moveFB =-1 ; return;
+	case VK_OEM_4: lightScaleSpotRadius = -1; return;
+	case VK_OEM_6: lightScaleSpotRadius = 1; return;
+	case VK_CONTROL: keyPressedCtrl = 1; return;
 	case VK_NUMPAD8: lightRotateUD = 1; return;
 	case VK_NUMPAD2: lightRotateUD = -1; return;
 	case VK_NUMPAD4: lightRotateLR = 1; return;
 	case VK_NUMPAD6: lightRotateLR = -1; return;
-	case VK_NUMPAD0: lightTurnOnOff = 1; return;
+	case VK_NUMPAD5: lightTurnOnOff = 1; return;
+		//move Light
+	case VK_NUMPAD7: moveLightLR = 1; return;
+	case VK_NUMPAD9: moveLightLR = -1; return;
+	case VK_NUMPAD1: moveLightFB = 1; return;
+	case VK_NUMPAD3: moveLightFB = -1; return;
+	case VK_ADD:
+	{
+		if (keyPressedCtrl)
+			lightScaleRadius = 1;
+		else
+			moveLightUD = 1;
+	}
+	return;
+	case VK_SUBTRACT: 
+	{
+		if (keyPressedCtrl)
+			lightScaleRadius = -1;
+		else
+			moveLightUD = -1;
+	}
+	return;
+		
 	}
 }
 
@@ -85,10 +110,20 @@ void myAppClass::onKeyUp(WPARAM btnState)
 	//case 'D': moveLR = 0; return;
 	case 'W': moveFB = 0; return;
 	case 'S': moveFB = 0; return;
+	case VK_CONTROL: keyPressedCtrl = 0; return;
 	case VK_NUMPAD8: lightRotateUD = 0; return;
 	case VK_NUMPAD2: lightRotateUD = 0; return;
 	case VK_NUMPAD4: lightRotateLR = 0; return;
 	case VK_NUMPAD6: lightRotateLR = 0; return;
+		//move Light
+	case VK_NUMPAD7: moveLightLR = 0; return;
+	case VK_NUMPAD9: moveLightLR = 0; return;
+	case VK_NUMPAD1: moveLightFB = 0; return;
+	case VK_NUMPAD3: moveLightFB = 0; return;
+	case VK_ADD: lightScaleRadius  = moveLightUD = 0; return;
+	case VK_SUBTRACT: lightScaleRadius = moveLightUD = 0; return;
+	case VK_OEM_4: lightScaleSpotRadius = 0; return;
+	case VK_OEM_6: lightScaleSpotRadius = 0; return;
 	}
 }
 
@@ -576,6 +611,36 @@ void myAppClass::BuildGeometry()
 		}
 		CreateConstGeometry("Plight", tpVertices.data(), tpIindices.data(), sizeof(Vertex), sizeof(UINT16), tpVertices.size(), tpIindices.size());
 	}
+
+	// ------------------- Create Geometry entry for Spot Light 	
+	{
+		ModelLoaderClass ModelLoader;
+		ModelLoader.LoadModelFromFile(L"SpotLight.obj");
+		ModelLoader.CalculateNormal();
+		int VertexCount = ModelLoader.GetVectorSizeV();
+
+		tpVertices.clear();
+		tpIindices.clear();
+		ModelLoader.SetToBeginV();
+
+		for (int i = 0; i < VertexCount; i++)
+		{
+			VertexModelLoader tmpVert = ModelLoader.GetNextV();
+			tpVertices.push_back(Vertex({ XMFLOAT3(tmpVert.x, tmpVert.y , tmpVert.z), tmpVert.normal }));
+		}
+
+		int IndexCount = ModelLoader.GetVectorSizeI();
+
+		ModelLoader.SetToBeginI();
+		for (int i = 0; i < IndexCount; i++)
+		{
+			uint16_t tmpIndex = ModelLoader.GetNextI();
+			tpIindices.push_back(tmpIndex);
+
+		}
+		CreateConstGeometry("Slight", tpVertices.data(), tpIindices.data(), sizeof(Vertex), sizeof(UINT16), tpVertices.size(), tpIindices.size());
+	}
+
 }
 
 void myAppClass::BuildMaterial()
@@ -680,6 +745,7 @@ void myAppClass::BuildRenderItems()
 	renderItem.numDirtyCB = renderItem.numDirtyVI = 0;
 	m_AllRenderItems.push_back(renderItem);
 
+	// Directional light
 	renderItem.world = MathHelper::Identity4x4();
 	renderItem.objCBIndex = 2;
 	renderItem.Geo = mGeometry["Dlight"].get();
@@ -699,7 +765,8 @@ void myAppClass::BuildRenderItems()
 	renderItem.numDirtyCB = renderItem.numDirtyVI = 0;
 	m_AllRenderItems.push_back(renderItem);
 	BuildLight(0, m_AllRenderItems.size() - 1);	
-		
+	
+	// Point Light
 	renderItem.world = MathHelper::Identity4x4();
 	renderItem.objCBIndex = 4;
 	renderItem.Geo = mGeometry["Plight"].get();
@@ -709,6 +776,27 @@ void myAppClass::BuildRenderItems()
 	renderItem.numDirtyCB = renderItem.numDirtyVI = 0;
 	m_AllRenderItems.push_back(renderItem);
 	BuildLight(1, m_AllRenderItems.size() - 1);
+
+	renderItem.world = MathHelper::Identity4x4();
+	renderItem.objCBIndex = 5;
+	renderItem.Geo = mGeometry["Plight"].get();
+	renderItem.Mat = mMaterials["LightUnSelected"].get();
+	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_LINELIST;
+	renderItem.numDirtyCB = renderItem.numDirtyVI = 0;
+	m_AllRenderItems.push_back(renderItem);
+	BuildLight(1, m_AllRenderItems.size() - 1);
+
+	// Spot Light
+	renderItem.world = MathHelper::Identity4x4();
+	renderItem.objCBIndex = 6;
+	renderItem.Geo = mGeometry["Slight"].get();
+	renderItem.Mat = mMaterials["LightUnSelected"].get();
+	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	//renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_LINELIST;
+	renderItem.numDirtyCB = renderItem.numDirtyVI = 0;
+	m_AllRenderItems.push_back(renderItem);
+	BuildLight(2, m_AllRenderItems.size() - 1);
 	
 }
 
@@ -739,7 +827,7 @@ void myAppClass::BuildLight(int lightType, int renderItemID)
 		tmpLight.mRadius = 0;
 		tmpLight.Position = XMFLOAT3(0, 0, 0);
 		tmpLight.Strength = XMFLOAT3(0.8f, 0.8f, 0.8f);
-		tmpLight.mRadius = 50.0f;
+		tmpLight.mRadius = 15.0f;
 		tmpLight.falloffStart = 1;
 		tmpLight.falloffEnd = tmpLight.mRadius;		
 		tmpLight.renderItemID = renderItemID;
@@ -748,8 +836,27 @@ void myAppClass::BuildLight(int lightType, int renderItemID)
 		tmpLight.needToUpdateLight = 1;
 		mLights.push_back(tmpLight);
 		lightCount++;
-	}
-		
+	}	
+	else if (lightType == 2) // Create SpotLight
+		{
+			CPULight tmpLight;
+			tmpLight.lightType = 2;
+			tmpLight.mPhi = 0;
+			tmpLight.mTheta = 0;
+			tmpLight.mRadius = 0;
+			tmpLight.Position = XMFLOAT3(0, 0, 0);
+			tmpLight.Strength = XMFLOAT3(0.8f, 0.8f, 0.8f);
+			tmpLight.mRadius = 15.0f;			
+			tmpLight.spotPower = 7;
+			tmpLight.falloffStart = 1;
+			tmpLight.falloffEnd = tmpLight.mRadius;
+			tmpLight.renderItemID = renderItemID;
+
+			tmpLight.needToUpdateRI = 1;
+			tmpLight.needToUpdateLight = 1;
+			mLights.push_back(tmpLight);
+			lightCount++;
+		}
 }
 
 // ------------------------------------------------------------------------------------------------------- Inicialization --------------
@@ -759,11 +866,15 @@ void myAppClass::InitLight()
 	// init Light position
 	mLights.at(0).Position = XMFLOAT3(10, 40, 0);
 	mLights.at(1).Position = XMFLOAT3(0, 20, 0);
-	mLights.at(2).Position = XMFLOAT3(10, 20, 0);
+	mLights.at(2).Position = XMFLOAT3(10, 5, 0);
+	mLights.at(3).Position = XMFLOAT3(-10, 10, -10);
+	mLights.at(4).Position = XMFLOAT3(20, 10, 15);
 
 	mLights.at(0).Strength = XMFLOAT3(0.8f, 0.8f, 0.8f);
 	mLights.at(1).Strength = XMFLOAT3(0.8f, 0.2f, 0.2f);
-	mLights.at(2).Strength = XMFLOAT3(0.5f, 0.5f, 0.7f);
+	mLights.at(2).Strength = XMFLOAT3(1.0f, 0.0f, 0.0f);
+	mLights.at(3).Strength = XMFLOAT3(1.0f, 1.0f, 1.0f);	
+	mLights.at(4).Strength = XMFLOAT3(0.0f, 1.0f, 0.0f);
 }
 
 // --------------------------------------------------------------------------------------------------------- Updateting ----------------
@@ -896,9 +1007,37 @@ void myAppClass::UpdateLight()
 	
 	mLights.at(lightIndexSelID).mPhi += dx*lightRotateLR;
 	mLights.at(lightIndexSelID).mTheta += dx*lightRotateUD;
-		
-	mLights.at(lightIndexSelID).needToUpdateRI |= (lightRotateLR != 0) || (lightRotateUD != 0);
-	mLights.at(lightIndexSelID).needToUpdateLight|= mLights.at(lightIndexSelID).needToUpdateRI;
+
+	dx = 1.0f / 100.0f;
+	mLights.at(lightIndexSelID).mRadius += dx*lightScaleRadius;
+	if (mLights.at(lightIndexSelID).mRadius < 3)
+		mLights.at(lightIndexSelID).mRadius = 3.0f;
+	else if (mLights.at(lightIndexSelID).mRadius > 100)
+		mLights.at(lightIndexSelID).mRadius = 100.0f;
+
+	mLights.at(lightIndexSelID).falloffEnd = mLights.at(lightIndexSelID).mRadius;
+	
+	dx = 1.0f / 100.0f;
+	mLights.at(lightIndexSelID).spotPower += dx*lightScaleSpotRadius;
+	if (mLights.at(lightIndexSelID).spotPower < 1)
+		mLights.at(lightIndexSelID).spotPower = 1.0f;
+	else if (mLights.at(lightIndexSelID).spotPower > 50)
+		mLights.at(lightIndexSelID).spotPower = 50.0f;
+
+	
+	
+	dx = 1.0f/100.0f;
+	XMFLOAT3 tmpPos = mLights.at(lightIndexSelID).Position;
+	tmpPos.x += moveLightFB*dx;
+	tmpPos.y+= moveLightUD*dx;
+	tmpPos.z += moveLightLR*dx;	
+	mLights.at(lightIndexSelID).Position = tmpPos;
+
+
+	mLights.at(lightIndexSelID).needToUpdateRI |= (lightRotateLR != 0) || (lightRotateUD != 0) || (moveLightFB != 0)
+		|| (moveLightLR != 0) || (moveLightUD != 0) || (lightScaleRadius != 0) || (lightScaleSpotRadius != 0);
+
+	mLights.at(lightIndexSelID).needToUpdateLight |= mLights.at(lightIndexSelID).needToUpdateRI;
 }
 
 void myAppClass::UpdateLightToRenderIntem()
@@ -906,13 +1045,26 @@ void myAppClass::UpdateLightToRenderIntem()
 	for (size_t i = 0; i < mLights.size(); i++)
 	{
 		if (mLights.at(i).needToUpdateRI)
-		{
+		{			
 			XMMATRIX tmpMatrix;
+			XMMATRIX tmpScaleMatrix;
 			// not used --- tmpMatrix = XMLoadFloat4x4(&m_AllRenderItems.at(mLights.at(i).renderItemID).world); 
 			
+			// Scalse do only for point light
+			if (mLights.at(i).lightType == 1)
+			{
+				tmpScaleMatrix = XMMatrixScaling(mLights.at(i).mRadius / 15.0f, mLights.at(i).mRadius / 15.0f, mLights.at(i).mRadius / 15.0f);
+			}
+			else if (mLights.at(i).lightType == 2)
+			{
+				tmpScaleMatrix = XMMatrixScaling(mLights.at(i).mRadius / 15.0f, mLights.at(i).spotPower/7, mLights.at(i).spotPower / 7);
+			}
+			else
+				tmpScaleMatrix = XMMatrixIdentity();
+
 			tmpMatrix = XMMatrixTranslation(mLights.at(i).Position.x, mLights.at(i).Position.y, mLights.at(i).Position.z);
 			
-			tmpMatrix = XMMatrixRotationRollPitchYaw(0, mLights.at(i).mPhi/180.0f*XM_PI, mLights.at(i).mTheta / 180.0f*XM_PI)*tmpMatrix;
+			tmpMatrix = tmpScaleMatrix*XMMatrixRotationRollPitchYaw(0, mLights.at(i).mPhi/180.0f*XM_PI, mLights.at(i).mTheta / 180.0f*XM_PI)*tmpMatrix;
 			//tmpMatrix = (XMMatrixRotationZ(mLights.at(i).mTheta)*XMMatrixRotationY(mLights.at(i).mPhi))*tmpMatrix;
 									
 			XMStoreFloat4x4(&m_AllRenderItems.at(mLights.at(i).renderItemID).world, tmpMatrix);

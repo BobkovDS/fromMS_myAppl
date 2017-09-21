@@ -65,13 +65,15 @@ LRESULT Cmn3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			FaceCountToDraw--;
 			if (FaceCountToDraw < 1) FaceCountToDraw = 1;
 		}
-		else if ((wParam == 'A') || (wParam == 'D') ||( wParam == 'W') ||( wParam == 'S')) 	{ onKeyDown(wParam); }
-		else if ((wParam == VK_NUMPAD8) || (wParam == VK_NUMPAD2) || (wParam == VK_NUMPAD4) || (wParam == VK_NUMPAD6) || (wParam == VK_NUMPAD0) ) { onKeyDown(wParam); }
+		else if ((wParam == VK_OEM_4) || (wParam == VK_OEM_6) ) { onKeyDown(wParam); }
+		else if ((wParam == 'A') || (wParam == 'D') ||( wParam == 'W') ||( wParam == 'S') || (wParam == VK_CONTROL)) 	{ onKeyDown(wParam); }
+		else if ( (wParam >= VK_NUMPAD0) && (wParam <= VK_NUMPAD9) || (wParam == VK_ADD) || (wParam == VK_SUBTRACT)) { onKeyDown(wParam); }
 		return 0;
 
 	case WM_KEYUP:
-		if ((wParam == 'A') || (wParam == 'D') || (wParam == 'W') || (wParam == 'S'))	{ onKeyUp(wParam);}
-		else if ((wParam == VK_NUMPAD8) || (wParam == VK_NUMPAD2) || (wParam == VK_NUMPAD4) || (wParam == VK_NUMPAD6)) { onKeyUp(wParam); }
+		if ((wParam == VK_OEM_4) || (wParam == VK_OEM_6)) { onKeyUp(wParam); }
+		else if ((wParam == 'A') || (wParam == 'D') || (wParam == 'W') || (wParam == 'S') || (wParam == VK_CONTROL))	{ onKeyUp(wParam);}
+		else if ((wParam >= VK_NUMPAD0) && (wParam <= VK_NUMPAD9) || (wParam ==VK_ADD) || (wParam == VK_SUBTRACT)) { onKeyUp(wParam); }
 		return 0;
 
 	case WM_DESTROY:

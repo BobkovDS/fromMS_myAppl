@@ -65,7 +65,7 @@ float3 ComputeDirectionalLight(Light L, Material mat, float3 normal, float3 toEy
 // Point Light
 float3 ComputePointLight(Light L, Material mat, float3 pos, float3 normal, float3 toEye)
 {
-	float lightVec = L.Position - pos;
+	float3 lightVec = L.Position - pos;
 
 	float d = length(lightVec);
 	if (d > L.FalloffEnd) return 0.0f;
