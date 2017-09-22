@@ -81,7 +81,37 @@ float3 ComputePointLight(Light L, Material mat, float3 pos, float3 normal, float
 	return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
 }
 
+// Spot Light
 
+float3 ComputeSpotLight(Light L, Material mat, float3 pos, float3 normal, float3 toEye)
+{
+	// The vector from the surface to the light
+	float3 lightVec = L.Position - pos; 
+	//float3 lightVec = -L.Direction;
+	
+	//The distance from surface to light
+	float d = length (lightVec);
+	
+	if (d > L.FalloffEnd) return 0.0f;
+	
+	//normalize the light vector
+	lightVec /=d;
+	
+	float ndotl = max(dot(lightVec, normal), 0.0f);	
+	float3 lightStrength = L.Strength * ndotl;
+	
+	//Attenuate light by distance
+	float att = CalcAttenuation(d, L.FalloffStart, L.FalloffEnd);
+	lightStrength *= att;
+	
+	float spotFactor = pow(max(dot(-lightVec, L.Direction), 0.0f), L.SpotPower);
+	lightStrength *= spotFactor;
+	
+	return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
+}
+
+
+// Common Light
 float4 ComputeLighting(Light glights[MaxLights], Material mat, float3 pos, float3 normal, float3 toEye)
 {
 	float3 result = 0.0f;
@@ -97,8 +127,11 @@ float4 ComputeLighting(Light glights[MaxLights], Material mat, float3 pos, float
 			{
 				result += ComputePointLight(glights[i], mat, pos, normal, toEye);
 			} 
+			else if (glights[i].lightType == 3)
+			{
+				result += ComputeSpotLight(glights[i], mat, pos, normal, toEye);
+			} 
 		}
 	}
-	return float4(result, 0.0f);
-	
+	return float4(result, 0.0f);	
 }

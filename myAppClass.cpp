@@ -185,6 +185,17 @@ void myAppClass::MoveObj(int Sig)
 	if (Sig == -1) mTheta -= XMConvertToRadians(1.1f);
 	else mTheta += XMConvertToRadians(1.1f);
 	*/
+
+
+	if (lightIndexSelID != 1)
+	{
+		float dx = 1.0f;// / 10.0f;// / 180.0f*XM_PI;
+
+		mLights.at(1).mPhi += dx;
+		mLights.at(1).needToUpdateRI = 1;
+	}
+
+
 }
 
 void myAppClass::Draw()
@@ -641,6 +652,34 @@ void myAppClass::BuildGeometry()
 		CreateConstGeometry("Slight", tpVertices.data(), tpIindices.data(), sizeof(Vertex), sizeof(UINT16), tpVertices.size(), tpIindices.size());
 	}
 
+	// ------------------- Create Geometry entry for the Wall	
+	{
+		ModelLoaderClass ModelLoader;
+		ModelLoader.LoadModelFromFile(L"theWall.obj");
+		ModelLoader.CalculateNormal();
+		int VertexCount = ModelLoader.GetVectorSizeV();
+
+		tpVertices.clear();
+		tpIindices.clear();
+		ModelLoader.SetToBeginV();
+
+		for (int i = 0; i < VertexCount; i++)
+		{
+			VertexModelLoader tmpVert = ModelLoader.GetNextV();
+			tpVertices.push_back(Vertex({ XMFLOAT3(tmpVert.x, tmpVert.y , tmpVert.z), tmpVert.normal }));
+		}
+
+		int IndexCount = ModelLoader.GetVectorSizeI();
+
+		ModelLoader.SetToBeginI();
+		for (int i = 0; i < IndexCount; i++)
+		{
+			uint16_t tmpIndex = ModelLoader.GetNextI();
+			tpIindices.push_back(tmpIndex);
+
+		}
+		CreateConstGeometry("theWall", tpVertices.data(), tpIindices.data(), sizeof(Vertex), sizeof(UINT16), tpVertices.size(), tpIindices.size());
+	}
 }
 
 void myAppClass::BuildMaterial()
@@ -782,7 +821,7 @@ void myAppClass::BuildRenderItems()
 	renderItem.Geo = mGeometry["Plight"].get();
 	renderItem.Mat = mMaterials["LightUnSelected"].get();
 	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_LINELIST;
+	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_POINTLIST;
 	renderItem.numDirtyCB = renderItem.numDirtyVI = 0;
 	m_AllRenderItems.push_back(renderItem);
 	BuildLight(1, m_AllRenderItems.size() - 1);
@@ -797,7 +836,15 @@ void myAppClass::BuildRenderItems()
 	renderItem.numDirtyCB = renderItem.numDirtyVI = 0;
 	m_AllRenderItems.push_back(renderItem);
 	BuildLight(2, m_AllRenderItems.size() - 1);
-	
+
+	renderItem.world = MathHelper::Identity4x4();
+	renderItem.objCBIndex = 1;
+	renderItem.Geo = mGeometry["theWall"].get();
+	renderItem.Mat = mMaterials["material1"].get();
+	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	renderItem.numDirtyCB = renderItem.numDirtyVI = 0;
+	m_AllRenderItems.push_back(renderItem);
+
 }
 
 void myAppClass::BuildLight(int lightType, int renderItemID)
@@ -1190,6 +1237,7 @@ void myAppClass::UpdatePassCB()
 			XMStoreFloat3(&mMainPassCB.Lights[i].Direction, lightDir);
 			mMainPassCB.Lights[i].Strength = mLights.at(i).Strength;
 			mMainPassCB.Lights[i].Position = mLights.at(i).Position;
+			mMainPassCB.Lights[i].spotPower = mLights.at(i).spotPower;
 			mMainPassCB.Lights[i].falloffStart = mLights.at(i).falloffStart;
 			mMainPassCB.Lights[i].falloffEnd = mLights.at(i).falloffEnd;			
 			mMainPassCB.Lights[i].lightType = mLights.at(i).lightType + 1;
