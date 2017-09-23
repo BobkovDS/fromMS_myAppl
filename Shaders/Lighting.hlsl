@@ -21,7 +21,16 @@ struct Light
 
 float CalcAttenuation(float d, float falloffStart, float falloffEnd)
 {
-	return saturate((falloffEnd - d) / (falloffEnd - falloffStart));
+	float result = saturate((falloffEnd - d) / (falloffEnd - falloffStart));
+
+	if (result<=0 )result = 0.4f;
+		else if ((result>0.0f) && (result<=0.5f))
+			result = 0.6f;
+			else if ((result>0.5f) && (result<=1))
+				result = 1;
+				
+	return result;	
+	
 }
 
 float3 SchlickFresnel(float3 R0, float3 normal, float3 lightVec)
@@ -105,6 +114,13 @@ float3 ComputeSpotLight(Light L, Material mat, float3 pos, float3 normal, float3
 	lightStrength *= att;
 	
 	float spotFactor = pow(max(dot(-lightVec, L.Direction), 0.0f), L.SpotPower);
+	
+	if ((spotFactor>=0) && (spotFactor<=0.1f))spotFactor = 0;
+		else if ((spotFactor>0.1f) && (spotFactor<=0.8f))
+			spotFactor = 0.5f;
+			else if ((spotFactor>0.8f) && (spotFactor<=1))
+				spotFactor = 0.8f;
+				
 	lightStrength *= spotFactor;
 	
 	return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);

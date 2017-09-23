@@ -34,6 +34,10 @@ struct CPULight
 	float mRadius;
 	float mPhi;
 	float mTheta;
+
+	float posRadius;
+	float posPhi;
+	float posTheta;
 	
 	DirectX::XMFLOAT3 Strength;		
 	DirectX::XMFLOAT3 Position;

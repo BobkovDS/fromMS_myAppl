@@ -185,17 +185,24 @@ void myAppClass::MoveObj(int Sig)
 	if (Sig == -1) mTheta -= XMConvertToRadians(1.1f);
 	else mTheta += XMConvertToRadians(1.1f);
 	*/
+	int selectLight = 3;
 
-
-	if (lightIndexSelID != 1)
+	if (lightIndexSelID != selectLight)
 	{
 		float dx = 1.0f;// / 10.0f;// / 180.0f*XM_PI;
 
-		mLights.at(1).mPhi += dx;
-		mLights.at(1).needToUpdateRI = 1;
+		mLights.at(selectLight).posTheta+= dx;
+		mLights.at(selectLight).needToUpdateRI = 1;
 	}
 
+	 selectLight = 4;
+	if (lightIndexSelID != selectLight)
+	{
+		float dx = 1.0f;// / 10.0f;// / 180.0f*XM_PI;
 
+		mLights.at(selectLight).mPhi += dx;
+		mLights.at(selectLight).needToUpdateRI = 1;
+	}
 }
 
 void myAppClass::Draw()
@@ -298,6 +305,7 @@ void myAppClass::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::vector
 		UINT startIndex= ri.Geo->DrawArgs["grid"].StartIndexLocation;
 		UINT baseVertexLocation = ri.Geo->DrawArgs["grid"].BaseVertexLocation;
 
+		if (ri.primitiveType != D3D10_PRIMITIVE_TOPOLOGY_POINTLIST)
 		cmdList->DrawIndexedInstanced(indexCount, 1, startIndex, baseVertexLocation, 0);
 
 		//Draw just points
@@ -790,7 +798,7 @@ void myAppClass::BuildRenderItems()
 	renderItem.Geo = mGeometry["Dlight"].get();
 	renderItem.Mat = mMaterials["LightUnSelected"].get();
 	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	//renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_POINTLIST;
+	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_POINTLIST;
 	renderItem.numDirtyCB = renderItem.numDirtyVI = 0;
 	m_AllRenderItems.push_back(renderItem);
 	BuildLight(0, m_AllRenderItems.size() - 1);
@@ -800,7 +808,7 @@ void myAppClass::BuildRenderItems()
 	renderItem.Geo = mGeometry["Dlight"].get();
 	renderItem.Mat = mMaterials["LightUnSelected"].get();
 	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	//renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_POINTLIST;
+	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_POINTLIST;
 	renderItem.numDirtyCB = renderItem.numDirtyVI = 0;
 	m_AllRenderItems.push_back(renderItem);
 	BuildLight(0, m_AllRenderItems.size() - 1);	
@@ -832,7 +840,7 @@ void myAppClass::BuildRenderItems()
 	renderItem.Geo = mGeometry["Slight"].get();
 	renderItem.Mat = mMaterials["LightUnSelected"].get();
 	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	//renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_LINELIST;
+	renderItem.primitiveType = D3D10_PRIMITIVE_TOPOLOGY_POINTLIST;
 	renderItem.numDirtyCB = renderItem.numDirtyVI = 0;
 	m_AllRenderItems.push_back(renderItem);
 	BuildLight(2, m_AllRenderItems.size() - 1);
@@ -911,17 +919,59 @@ void myAppClass::BuildLight(int lightType, int renderItemID)
 void myAppClass::InitLight()
 {
 	// init Light position
+	/*
 	mLights.at(0).Position = XMFLOAT3(10, 40, 0);
 	mLights.at(1).Position = XMFLOAT3(0, 20, 0);
 	mLights.at(2).Position = XMFLOAT3(10, 5, 0);
 	mLights.at(3).Position = XMFLOAT3(-10, 10, -10);
 	mLights.at(4).Position = XMFLOAT3(20, 10, 15);
+	*/
 
 	mLights.at(0).Strength = XMFLOAT3(0.8f, 0.8f, 0.8f);
 	mLights.at(1).Strength = XMFLOAT3(0.8f, 0.2f, 0.2f);
 	mLights.at(2).Strength = XMFLOAT3(1.0f, 0.0f, 0.0f);
 	mLights.at(3).Strength = XMFLOAT3(1.0f, 1.0f, 1.0f);	
 	mLights.at(4).Strength = XMFLOAT3(0.0f, 1.0f, 0.0f);
+
+	// Light Directtional 1
+	mLights.at(0).posRadius = 10;
+	mLights.at(0).posPhi = 10;
+	mLights.at(0).posTheta = 20;
+
+	mLights.at(0).mRadius = 3;
+	mLights.at(0).mPhi = 805.4f;
+	mLights.at(0).mTheta = 730.3f;
+
+	// Light Directtional 2
+	mLights.at(1).posRadius = 10;
+	mLights.at(1).posPhi = -10;
+	mLights.at(1).posTheta = 20;
+	mLights.at(1).turnOn = 0;
+
+	// Light Point 1
+	mLights.at(2).posRadius = 20;
+	mLights.at(2).posPhi = 10;
+	mLights.at(2).posTheta = 30;
+
+	// Light Point 2
+	mLights.at(3).posRadius = 60;
+	mLights.at(3).posPhi = -94;
+	mLights.at(3).posTheta = 30;
+
+	mLights.at(3).mRadius = 73.5f;
+	mLights.at(3).mPhi = -82.6f;
+	mLights.at(3).mTheta = 0;
+	mLights.at(3).falloffEnd = mLights.at(3).mRadius;
+
+	// Light Spot 1
+	mLights.at(4).posRadius = 29;
+	mLights.at(4).posPhi = -369.4f;
+	mLights.at(4).posTheta = 43.7f;
+
+	mLights.at(4).mRadius = 29.1f;
+	mLights.at(4).mPhi = -82.6f;
+	mLights.at(4).mTheta = -40.8f;
+	mLights.at(4).falloffEnd = mLights.at(4).mRadius;
 }
 
 // --------------------------------------------------------------------------------------------------------- Updateting ----------------
@@ -1072,19 +1122,35 @@ void myAppClass::UpdateLight()
 		mLights.at(lightIndexSelID).spotPower = 50.0f;
 
 	
-	
+	/*
 	dx = 1.0f/100.0f;
 	XMFLOAT3 tmpPos = mLights.at(lightIndexSelID).Position;
 	tmpPos.x += moveLightFB*dx;
 	tmpPos.y+= moveLightUD*dx;
 	tmpPos.z += moveLightLR*dx;	
 	mLights.at(lightIndexSelID).Position = tmpPos;
+	*/
+
+	dx = 1.0f / 10.0f;
+	mLights.at(lightIndexSelID).posRadius += moveLightUD*dx/10.0f;
+	mLights.at(lightIndexSelID).posPhi += moveLightLR*dx;
+	mLights.at(lightIndexSelID).posTheta += moveLightFB *dx;
 
 
 	mLights.at(lightIndexSelID).needToUpdateRI |= (lightRotateLR != 0) || (lightRotateUD != 0) || (moveLightFB != 0)
 		|| (moveLightLR != 0) || (moveLightUD != 0) || (lightScaleRadius != 0) || (lightScaleSpotRadius != 0);
 
 	mLights.at(lightIndexSelID).needToUpdateLight |= mLights.at(lightIndexSelID).needToUpdateRI;
+
+	// Calculate Position of light 
+	for (size_t i = 0; i < mLights.size(); i++)
+	{		
+		float x = mLights.at(i).posRadius* sin(mLights.at(i).posTheta / 180.0f*XM_PI)*sin(mLights.at(i).posPhi / 180.0f*XM_PI);
+		float z = mLights.at(i).posRadius* sin(mLights.at(i).posTheta / 180.0f*XM_PI)*cos(mLights.at(i).posPhi / 180.0f*XM_PI);
+		float y = mLights.at(i).posRadius* cos(mLights.at(i).posTheta / 180.0f*XM_PI);
+
+		mLights.at(i).Position = XMFLOAT3(x, y, z);
+	}
 }
 
 void myAppClass::UpdateLightToRenderIntem()
@@ -1143,6 +1209,7 @@ void myAppClass::UpdateLightToRenderIntem()
 
 	}
 }
+
 void myAppClass::UpdateCB()
 {
 	auto currCBObject = m_CurrentFrameResource->perObjectCB.get();

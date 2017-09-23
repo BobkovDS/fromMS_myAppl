@@ -15,6 +15,8 @@ struct Light
 	float FalloffEnd;
 	float3 Position;
 	float SpotPower;
+	float lightType;
+	float lightTurnOn;
 };
 
 float CalcAttenuation(float d, float falloffStart, float falloffEnd)
@@ -63,7 +65,7 @@ float3 ComputeDirectionalLight(Light L, Material mat, float3 normal, float3 toEy
 // Point Light
 float3 ComputePointLight(Light L, Material mat, float3 pos, float3 normal, float3 toEye)
 {
-	float lightVec = L.Position - pos;
+	float3 lightVec = L.Position - pos;
 
 	float d = length(lightVec);
 	if (d > L.FalloffEnd) return 0.0f;
@@ -79,12 +81,57 @@ float3 ComputePointLight(Light L, Material mat, float3 pos, float3 normal, float
 	return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
 }
 
+// Spot Light
 
+float3 ComputeSpotLight(Light L, Material mat, float3 pos, float3 normal, float3 toEye)
+{
+	// The vector from the surface to the light
+	float3 lightVec = L.Position - pos; 
+	//float3 lightVec = -L.Direction;
+	
+	//The distance from surface to light
+	float d = length (lightVec);
+	
+	if (d > L.FalloffEnd) return 0.0f;
+	
+	//normalize the light vector
+	lightVec /=d;
+	
+	float ndotl = max(dot(lightVec, normal), 0.0f);	
+	float3 lightStrength = L.Strength * ndotl;
+	
+	//Attenuate light by distance
+	float att = CalcAttenuation(d, L.FalloffStart, L.FalloffEnd);
+	lightStrength *= att;
+	
+	float spotFactor = pow(max(dot(-lightVec, L.Direction), 0.0f), L.SpotPower);
+	lightStrength *= spotFactor;
+	
+	return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
+}
+
+
+// Common Light
 float4 ComputeLighting(Light glights[MaxLights], Material mat, float3 pos, float3 normal, float3 toEye)
 {
 	float3 result = 0.0f;
-
-	result = ComputeDirectionalLight(glights[0], mat, normal, toEye);
-
-	return float4(result, 0.0f);
+	for (int i=0; i<MaxLights; i++)
+	{
+		if (glights[i].lightTurnOn == 1)
+		{
+			if (glights[i].lightType == 1)
+			{
+				result += ComputeDirectionalLight(glights[i], mat, normal, toEye);
+			}
+			else if (glights[i].lightType == 2)
+			{
+				result += ComputePointLight(glights[i], mat, pos, normal, toEye);
+			} 
+			else if (glights[i].lightType == 3)
+			{
+				result += ComputeSpotLight(glights[i], mat, pos, normal, toEye);
+			} 
+		}
+	}
+	return float4(result, 0.0f);	
 }
